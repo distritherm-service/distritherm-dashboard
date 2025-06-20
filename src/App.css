@@ -1,0 +1,31 @@
+/* 
+  App.css - Styles personnalisés pour le composant App
+  
+  Ce fichier peut être utilisé en complément de Tailwind CSS pour :
+  - Des animations personnalisées
+  - Des styles très spécifiques non couverts par Tailwind
+  - Des variables CSS personnalisées
+  - Des media queries complexes
+*/
+
+/* Exemple d'animation personnalisée */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+  100% { transform: translateY(0px); }
+}
+
+.float-animation {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Variables CSS personnalisées (peuvent être utilisées avec Tailwind) */
+:root {
+  --primary-color: #3b82f6; /* Équivalent à blue-500 de Tailwind */
+  --secondary-color: #10b981; /* Équivalent à emerald-500 */
+}
+
+/* Styles personnalisés si nécessaire */
+.custom-gradient {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+} 
