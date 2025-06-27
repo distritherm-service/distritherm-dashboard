@@ -18,6 +18,7 @@ import Calendar from './pages/Calendar';
 import Contact from './pages/Contact';
 import Profile from './pages/Profile';
 import ProtectedRoute from './components/common/ProtectedRoute';
+import Agencies from './pages/Agencies';
 import './App.css';
 
 function App() {
@@ -38,6 +39,7 @@ function App() {
               <Route path="/orders/:id" element={<OrderDetails />} />
               <Route path="/order-details" element={<OrderDetails />} />
               <Route path="/clients" element={<Clients />} />
+              <Route path="/agencies" element={<Agencies />} />
               <Route path="/reviews" element={<Reviews />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/commercial" element={<Commercial />} />

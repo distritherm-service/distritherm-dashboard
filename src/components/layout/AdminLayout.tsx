@@ -14,6 +14,7 @@ import {
   Grid3X3,
   Boxes,
   ShoppingBag,
+  Building2,
   Settings,
   LogOut
 } from 'lucide-react';
@@ -33,6 +34,7 @@ const menuItems: MenuItem[] = [
   { id: 'orders', label: 'Demandes reçues', icon: FileText, path: '/orders' },
   { id: 'order-details', label: 'Détails des commandes', icon: Package, path: '/order-details' },
   { id: 'clients', label: 'Clients', icon: Users, path: '/clients' },
+  { id: 'agencies', label: 'Mes agences', icon: Building2, path: '/agencies' },
   
   { id: 'commercial', label: 'Commerciaux', icon: TrendingUp, path: '/commercial' },
   { id: 'categories', label: 'Catégories', icon: Grid3X3, path: '/categories' },
