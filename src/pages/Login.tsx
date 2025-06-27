@@ -40,8 +40,13 @@ const Login: React.FC = () => {
         form?.classList.add('animate-shake');
         setTimeout(() => form?.classList.remove('animate-shake'), 500);
       }
-    } catch (err) {
-      setError('Une erreur est survenue');
+    } catch (err: any) {
+      // Afficher le message d'erreur du backend si disponible
+      setError(err.message || 'Une erreur est survenue');
+      // Animation de secousse en cas d'erreur
+      const form = document.getElementById('login-form');
+      form?.classList.add('animate-shake');
+      setTimeout(() => form?.classList.remove('animate-shake'), 500);
     } finally {
       setIsLoading(false);
     }
@@ -192,19 +197,20 @@ const Login: React.FC = () => {
           </motion.button>
         </form>
 
-        {/* Helper text */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-          className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg"
-        >
-          <p className="text-xs text-emerald-700 text-center">
-            <strong>Identifiants de connexion :</strong><br />
-            Email : mohamed.chehem@teknosure.com<br />
-            Mot de passe : mohamed123
-          </p>
-        </motion.div>
+        {/* Helper text - Supprimé car les identifiants sont fournis par le backend */}
+        {import.meta.env.DEV && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.8 }}
+            className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg"
+          >
+            <p className="text-xs text-blue-700 text-center">
+              <strong>Mode développement</strong><br />
+              Utilisez les identifiants fournis par l'administrateur
+            </p>
+          </motion.div>
+        )}
 
         {/* Footer */}
         <motion.p

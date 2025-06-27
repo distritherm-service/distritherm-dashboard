@@ -14,7 +14,6 @@ import {
   Grid3X3,
   Boxes,
   ShoppingBag,
-  X,
   Settings,
   LogOut
 } from 'lucide-react';
@@ -179,7 +178,7 @@ const AdminLayout: React.FC = () => {
         {/* Bottom Section */}
         <div className="px-3 pb-6 border-t border-slate-700 pt-4">
           {/* Settings */}
-          {bottomMenuItems.map((item, index) => {
+          {bottomMenuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
 
