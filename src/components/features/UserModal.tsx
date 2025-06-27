@@ -8,16 +8,17 @@ interface UserModalProps {
   onSubmit: (data: CreateUserInput) => void;
   user?: User | null;
   mode: 'create' | 'edit';
+  forcedRole?: 'CLIENT' | 'ADMIN' | 'COMMERCIAL';
 }
 
-const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSubmit, user, mode }) => {
+const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSubmit, user, mode, forcedRole }) => {
   const [formData, setFormData] = useState<CreateUserInput>({
     firstName: '',
     lastName: '',
     email: '',
     password: '',
     phoneNumber: '',
-    role: 'CLIENT',
+    role: forcedRole || 'CLIENT',
     companyName: '',
     siretNumber: '',
     urlPicture: ''
@@ -42,7 +43,7 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSubmit, user, 
         email: user.email,
         password: '',
         phoneNumber: user.phoneNumber,
-        role: user.role,
+        role: forcedRole || user.role,
         companyName: user.companyName || '',
         siretNumber: user.siretNumber || '',
         urlPicture: user.urlPicture || ''
@@ -55,7 +56,7 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSubmit, user, 
         email: '',
         password: '',
         phoneNumber: '',
-        role: 'CLIENT',
+        role: forcedRole || 'CLIENT',
         companyName: '',
         siretNumber: '',
         urlPicture: ''
@@ -63,7 +64,7 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSubmit, user, 
       setShowCompanyFields(false);
     }
     setErrors({});
-  }, [user, mode, isOpen]);
+  }, [user, mode, isOpen, forcedRole]);
 
   const validate = (): boolean => {
     const newErrors: Partial<CreateUserInput> = {};
@@ -280,19 +281,22 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSubmit, user, 
             )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Rôle
-            </label>
-            <select
-              value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value as 'CLIENT' | 'ADMIN' })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            >
-              <option value="CLIENT">Client</option>
-              <option value="ADMIN">Administrateur</option>
-            </select>
-          </div>
+          {!forcedRole && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Rôle
+              </label>
+              <select
+                value={formData.role}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value as 'CLIENT' | 'ADMIN' | 'COMMERCIAL' })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
+                <option value="CLIENT">Client</option>
+                <option value="ADMIN">Administrateur</option>
+                <option value="COMMERCIAL">Commercial</option>
+              </select>
+            </div>
+          )}
 
           {formData.role === 'CLIENT' && (
             <div className="flex items-center gap-2">

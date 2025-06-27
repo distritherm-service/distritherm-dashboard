@@ -38,6 +38,33 @@ export const userService = {
   },
 
   /**
+   * Récupérer la liste paginée des utilisateurs par rôle
+   * GET /users/by-role
+   */
+  async getUsersByRole(role: 'ADMIN' | 'CLIENT' | 'COMMERCIAL', params?: GetUsersParams): Promise<UsersResponse> {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      queryParams.append('role', role);
+      
+      if (params?.page) {
+        queryParams.append('page', params.page.toString());
+      }
+      if (params?.limit) {
+        queryParams.append('limit', params.limit.toString());
+      }
+
+      const endpoint = `/users/by-role?${queryParams.toString()}`;
+      const response = await apiClient.get<UsersResponse>(endpoint);
+      
+      return response.data;
+    } catch (error) {
+      const message = handleApiError(error as AxiosError<ApiError>);
+      throw new Error(message);
+    }
+  },
+
+  /**
    * Créer un nouvel utilisateur (Admin uniquement)
    * POST /users/create-user
    */

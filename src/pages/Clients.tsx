@@ -1,175 +1,134 @@
 import React, { useState } from 'react';
-import { Users, Plus, Search, Edit2, Trash2, Phone, Mail, Shield, User as UserIcon, ChevronLeft, ChevronRight, AlertCircle, RefreshCcw } from 'lucide-react';
-import { useUsers } from '../hooks/useUsers';
+import { Users, Plus, Search, Edit2, Trash2, Phone, Mail, Shield, User as UserIcon, ChevronLeft, ChevronRight, AlertCircle, RefreshCcw, Building2, CreditCard } from 'lucide-react';
+import { useClients } from '../hooks/useClients';
 import { useAuth } from '../contexts/AuthContext';
 import type { User, CreateUserInput, UpdateUserInput } from '../types/user';
 import UserModal from '../components/features/UserModal';
 import ConfirmModal from '../components/features/ConfirmModal';
+import { useToast } from '../contexts/ToastContext';
 
 const Clients: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedClient, setSelectedClient] = useState<User | null>(null);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [clientToDelete, setClientToDelete] = useState<User | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [selfDeleteError, setSelfDeleteError] = useState(false);
-  const [permissionError, setPermissionError] = useState<string | null>(null);
+  const { showSuccess, showError } = useToast();
   
   // Récupérer l'utilisateur actuel depuis le contexte Auth
   const { user: currentUser } = useAuth();
 
-  // Utiliser le hook personnalisé
+  // Utiliser le hook personnalisé pour les clients
   const {
-    users,
+    clients,
     loading,
     error,
     meta,
-    createUser,
-    updateUser,
-    deleteUser,
-    loadUsers,
+    createClient,
+    updateClient,
+    deleteClient,
+    loadClients,
     clearError,
-    refreshUsers
-  } = useUsers({ page: currentPage, limit: itemsPerPage });
+    refreshClients
+  } = useClients({ page: currentPage, limit: itemsPerPage });
 
   // Réinitialiser la page lors du changement du nombre d'éléments par page
   const handleItemsPerPageChange = (newLimit: number) => {
     setItemsPerPage(newLimit);
     setCurrentPage(1);
-    loadUsers({ page: 1, limit: newLimit });
+    loadClients({ page: 1, limit: newLimit });
   };
 
-  // Filtrer les utilisateurs
-  const filteredUsers = users?.filter(user => {
+  // Filtrer les clients
+  const filteredClients = clients?.filter(client => {
     const searchLower = searchTerm.toLowerCase();
     return (
-      user.firstName.toLowerCase().includes(searchLower) ||
-      user.lastName.toLowerCase().includes(searchLower) ||
-      user.email.toLowerCase().includes(searchLower) ||
-      user.phoneNumber.includes(searchTerm)
+      client.firstName.toLowerCase().includes(searchLower) ||
+      client.lastName.toLowerCase().includes(searchLower) ||
+      client.email.toLowerCase().includes(searchLower) ||
+      client.phoneNumber.includes(searchTerm) ||
+      (client.companyName && client.companyName.toLowerCase().includes(searchLower))
     );
   }) || [];
 
   // Ouvrir le modal de création
   const handleCreate = () => {
-    setSelectedUser(null);
+    setSelectedClient(null);
     setModalMode('create');
     setIsModalOpen(true);
   };
 
   // Ouvrir le modal d'édition
-  const handleEdit = (user: User) => {
+  const handleEdit = (client: User) => {
     // Vérifier les permissions : seul l'utilisateur lui-même ou un admin peut modifier
     if (currentUser) {
-      if (currentUser.role !== 'ADMIN' && currentUser.id !== user.id) {
-        setPermissionError('Vous n\'êtes pas autorisé à modifier les informations de cet utilisateur');
-        // Masquer le message après 5 secondes
-        setTimeout(() => setPermissionError(null), 5000);
+      if (currentUser.role !== 'ADMIN' && currentUser.id !== client.id) {
+        showError('Vous n\'êtes pas autorisé à modifier les informations de cet utilisateur');
         return;
       }
     }
     
-    setSelectedUser(user);
+    setSelectedClient(client);
     setModalMode('edit');
     setIsModalOpen(true);
   };
 
   // Soumettre le formulaire
   const handleSubmit = async (data: CreateUserInput) => {
-    clearError(); // Effacer les erreurs précédentes
+    let success = false;
     
-    try {
-      let success = false;
-      
-      if (modalMode === 'create') {
-        success = await createUser(data);
-        // L'email de vérification est envoyé automatiquement par l'API
-        if (success) {
-          // Afficher un message de succès temporaire
-          const successMessage = 'Utilisateur créé avec succès';
-          console.log('✅', successMessage);
-        }
-      } else if (selectedUser) {
-        // Nettoyer les données pour ne pas envoyer de champs vides
-        const updateData: UpdateUserInput = {};
-        
-        if (data.firstName && data.firstName !== selectedUser.firstName) {
-          updateData.firstName = data.firstName;
-        }
-        if (data.lastName && data.lastName !== selectedUser.lastName) {
-          updateData.lastName = data.lastName;
-        }
-        if (data.email && data.email !== selectedUser.email) {
-          updateData.email = data.email;
-        }
-        if (data.phoneNumber && data.phoneNumber !== selectedUser.phoneNumber) {
-          updateData.phoneNumber = data.phoneNumber;
-        }
-        if (data.role && data.role !== selectedUser.role) {
-          updateData.role = data.role;
-        }
-        if (data.companyName !== undefined && data.companyName !== selectedUser.companyName) {
-          updateData.companyName = data.companyName;
-        }
-        if (data.siretNumber !== undefined && data.siretNumber !== selectedUser.siretNumber) {
-          updateData.siretNumber = data.siretNumber;
-        }
-        if (data.urlPicture !== undefined && data.urlPicture !== selectedUser.urlPicture) {
-          updateData.urlPicture = data.urlPicture;
-        }
-        
-        // Ne faire l'appel API que s'il y a des changements
-        if (Object.keys(updateData).length > 0) {
-          success = await updateUser(selectedUser.id, updateData);
-          if (success) {
-            // Afficher un message de succès temporaire
-            const successMessage = 'Utilisateur modifié avec succès';
-            console.log('✅', successMessage);
-          }
-        } else {
-          // Pas de changements détectés
-          console.log('ℹ️ Aucune modification détectée');
-          setIsModalOpen(false);
-          return;
-        }
-      }
-      
-      if (success) {
-        setIsModalOpen(false);
-        clearError();
-      }
-    } catch (error) {
-      // Les erreurs sont déjà gérées par le hook useUsers et affichées dans l'interface
-      console.error('❌ Erreur lors de la sauvegarde:', error);
+    if (modalMode === 'create') {
+      success = await createClient(data);
+      if (success) showSuccess('Client créé avec succès');
+    } else if (selectedClient) {
+      const updateData: UpdateUserInput = {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phoneNumber: data.phoneNumber,
+        companyName: data.companyName,
+        siretNumber: data.siretNumber,
+        urlPicture: data.urlPicture
+      };
+      success = await updateClient(selectedClient.id, updateData);
+      if (success) showSuccess('Client modifié avec succès');
+    }
+    
+    if (success) {
+      setIsModalOpen(false);
+      setSelectedClient(null);
+      clearError();
+    } else {
+      showError(error || 'Une erreur est survenue');
     }
   };
 
   // Confirmer la suppression
-  const handleDeleteClick = (user: User) => {
+  const handleDeleteClick = (client: User) => {
     // Vérifier si l'utilisateur tente de supprimer son propre compte
-    if (currentUser && user.id === currentUser.id) {
-      setSelfDeleteError(true);
-      // Masquer le message après 5 secondes
-      setTimeout(() => setSelfDeleteError(false), 5000);
+    if (currentUser && client.id === currentUser.id) {
+      showError('Vous ne pouvez pas supprimer votre propre compte');
       return;
     }
     
-    setUserToDelete(user);
+    setClientToDelete(client);
     setIsDeleteModalOpen(true);
   };
 
-  // Supprimer l'utilisateur
+  // Supprimer le client
   const handleDelete = async () => {
-    if (userToDelete) {
-      const success = await deleteUser(userToDelete.id);
-      if (success) {
-        setIsDeleteModalOpen(false);
-        setUserToDelete(null);
-        clearError();
-      }
+    if (!clientToDelete) return;
+    
+    const success = await deleteClient(clientToDelete.id);
+    if (success) {
+      showSuccess(`Client "${clientToDelete.firstName} ${clientToDelete.lastName}" supprimé avec succès`);
+      setIsDeleteModalOpen(false);
+      setClientToDelete(null);
+    } else {
+      showError(error || 'Erreur lors de la suppression du client');
     }
   };
 
@@ -177,7 +136,7 @@ const Clients: React.FC = () => {
   const handlePageChange = (page: number) => {
     if (page < 1 || (meta && page > meta.lastPage)) return;
     setCurrentPage(page);
-    loadUsers({ page, limit: itemsPerPage });
+    loadClients({ page, limit: itemsPerPage });
   };
 
   // Générer les numéros de page à afficher
@@ -188,29 +147,23 @@ const Clients: React.FC = () => {
     const totalPages = meta.lastPage;
     const current = currentPage;
     
-    // Toujours afficher la première page
     pages.push(1);
     
-    // Afficher les pages autour de la page actuelle
     const startPage = Math.max(2, current - 2);
     const endPage = Math.min(totalPages - 1, current + 2);
     
-    // Ajouter ... si nécessaire
     if (startPage > 2) {
       pages.push('...');
     }
     
-    // Ajouter les pages du milieu
     for (let i = startPage; i <= endPage; i++) {
       pages.push(i);
     }
     
-    // Ajouter ... si nécessaire
     if (endPage < totalPages - 1) {
       pages.push('...');
     }
     
-    // Toujours afficher la dernière page
     if (totalPages > 1) {
       pages.push(totalPages);
     }
@@ -228,6 +181,9 @@ const Clients: React.FC = () => {
     });
   };
 
+  // Vérifier si l'utilisateur est admin
+  const isAdmin = currentUser?.role === 'ADMIN';
+
   return (
     <div className="space-y-6">
       {/* Affichage des erreurs */}
@@ -242,38 +198,6 @@ const Clients: React.FC = () => {
           </button>
         </div>
       )}
-      
-      {/* Message d'erreur pour la tentative de suppression de son propre compte */}
-      {selfDeleteError && (
-        <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-lg flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <AlertCircle size={20} />
-            <span>Vous ne pouvez pas supprimer votre propre compte. Pour désactiver votre compte, veuillez contacter un administrateur.</span>
-          </div>
-          <button 
-            onClick={() => setSelfDeleteError(false)}
-            className="text-amber-500 hover:text-amber-700 font-bold"
-          >
-            ×
-          </button>
-        </div>
-      )}
-      
-      {/* Message d'erreur pour les permissions insuffisantes */}
-      {permissionError && (
-        <div className="bg-orange-50 border border-orange-200 text-orange-700 px-4 py-3 rounded-lg flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Shield size={20} />
-            <span>{permissionError}</span>
-          </div>
-          <button 
-            onClick={() => setPermissionError(null)}
-            className="text-orange-500 hover:text-orange-700 font-bold"
-          >
-            ×
-          </button>
-        </div>
-      )}
 
       {/* En-tête */}
       <div className="flex items-center justify-between">
@@ -283,27 +207,30 @@ const Clients: React.FC = () => {
             <h1 className="text-3xl font-bold text-gray-800">Clients</h1>
             {meta && (
               <p className="text-sm text-gray-500 mt-1">
-                {meta.total} utilisateur{meta.total > 1 ? 's' : ''} au total
+                {meta.total} client{meta.total > 1 ? 's' : ''} au total
               </p>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={refreshUsers}
-            className="flex items-center gap-2 px-4 py-2 border border-emerald-500 text-emerald-500 rounded-lg hover:bg-emerald-50 transition-colors cursor-pointer"
-          >
-            <RefreshCcw size={18} />
-            Actualiser
-          </button>
-          <button
-            onClick={handleCreate}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors cursor-pointer"
-          >
-            <Plus size={20} />
-            Nouveau client
-          </button>
-        </div>
+        {isAdmin && (
+          <div className="flex items-center gap-3">
+            <button
+              onClick={refreshClients}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 border border-emerald-500 text-emerald-500 rounded-lg hover:bg-emerald-50 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCcw size={18} />
+              Actualiser
+            </button>
+            <button
+              onClick={handleCreate}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors cursor-pointer"
+            >
+              <Plus size={20} />
+              Nouveau client
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Barre de recherche */}
@@ -313,7 +240,7 @@ const Clients: React.FC = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input
               type="text"
-              placeholder="Rechercher par nom, email ou téléphone..."
+              placeholder="Rechercher par nom, email, téléphone ou entreprise..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -335,7 +262,7 @@ const Clients: React.FC = () => {
         </div>
       </div>
 
-      {/* Tableau des utilisateurs */}
+      {/* Tableau des clients */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         {loading ? (
           <div className="p-8 text-center">
@@ -348,26 +275,26 @@ const Clients: React.FC = () => {
             <p className="text-gray-700 font-medium mb-2">Erreur de chargement</p>
             <p className="text-gray-500 text-sm mb-4">{error}</p>
             <button
-              onClick={refreshUsers}
+              onClick={refreshClients}
               className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
             >
               Réessayer
             </button>
           </div>
-        ) : !users || users.length === 0 ? (
+        ) : !clients || clients.length === 0 ? (
           <div className="p-8 text-center">
             <UserIcon size={48} className="mx-auto text-gray-300 mb-4" />
-            <p className="text-gray-700 font-medium mb-2">Aucun utilisateur</p>
+            <p className="text-gray-700 font-medium mb-2">Aucun client</p>
             <p className="text-gray-500 text-sm">
-              Il n'y a pas encore d'utilisateurs enregistrés dans le système.
+              Il n'y a pas encore de clients enregistrés dans le système.
             </p>
           </div>
-        ) : filteredUsers.length === 0 ? (
+        ) : filteredClients.length === 0 ? (
           <div className="p-8 text-center">
             <UserIcon size={48} className="mx-auto text-gray-300 mb-4" />
             <p className="text-gray-700 font-medium mb-2">Aucun résultat</p>
             <p className="text-gray-500">
-              Aucun utilisateur ne correspond à votre recherche "{searchTerm}"
+              Aucun client ne correspond à votre recherche "{searchTerm}"
             </p>
           </div>
         ) : (
@@ -377,16 +304,13 @@ const Clients: React.FC = () => {
                 <thead className="bg-gray-50 border-b">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Utilisateur
+                      Client
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Contact
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Rôle
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Type
+                      Entreprise
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Date d'inscription
@@ -397,21 +321,33 @@ const Clients: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredUsers.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                  {filteredClients.map((client) => (
+                    <tr key={client.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="h-10 w-10 flex-shrink-0">
-                            <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                              <span className="text-emerald-700 font-medium">
-                                {user.firstName[0]}{user.lastName[0]}
-                              </span>
-                            </div>
+                            {client.urlPicture ? (
+                              <img 
+                                src={client.urlPicture} 
+                                alt={`${client.firstName} ${client.lastName}`}
+                                className="h-10 w-10 rounded-full object-cover"
+                              />
+                            ) : (
+                              <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                                <span className="text-emerald-700 font-medium">
+                                  {client.firstName[0]}{client.lastName[0]}
+                                </span>
+                              </div>
+                            )}
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">
-                              {user.firstName} {user.lastName}
+                              {client.firstName} {client.lastName}
                             </div>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              <Shield size={12} />
+                              Client
+                            </span>
                           </div>
                         </div>
                       </td>
@@ -419,66 +355,77 @@ const Clients: React.FC = () => {
                         <div className="text-sm text-gray-900">
                           <div className="flex items-center gap-2 mb-1">
                             <Mail size={14} className="text-gray-400" />
-                            {user.email}
+                            <a href={`mailto:${client.email}`} className="hover:text-emerald-600">
+                              {client.email}
+                            </a>
                           </div>
                           <div className="flex items-center gap-2">
                             <Phone size={14} className="text-gray-400" />
-                            {user.phoneNumber}
+                            <a href={`tel:${client.phoneNumber}`} className="hover:text-emerald-600">
+                              {client.phoneNumber}
+                            </a>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          user.role === 'ADMIN' 
-                            ? 'bg-purple-100 text-purple-800' 
-                            : 'bg-blue-100 text-blue-800'
-                        }`}>
-                          <Shield size={12} />
-                          {user.role === 'ADMIN' ? 'Administrateur' : 'Client'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          {user.type}
-                        </span>
+                        {client.companyName || client.siretNumber ? (
+                          <div className="text-sm">
+                            {client.companyName && (
+                              <div className="flex items-center gap-2 text-gray-900">
+                                <Building2 size={14} className="text-gray-400" />
+                                {client.companyName}
+                              </div>
+                            )}
+                            {client.siretNumber && (
+                              <div className="flex items-center gap-2 text-gray-500 text-xs mt-1">
+                                <CreditCard size={12} className="text-gray-400" />
+                                {client.siretNumber}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-400">-</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(user.createdAt)}
+                        {formatDate(client.createdAt)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => handleEdit(user)}
-                            disabled={!!(currentUser && currentUser.role !== 'ADMIN' && currentUser.id !== user.id)}
+                            onClick={() => handleEdit(client)}
+                            disabled={!!(currentUser && currentUser.role !== 'ADMIN' && currentUser.id !== client.id)}
                             className={`p-1 rounded transition-colors ${
-                              currentUser && currentUser.role !== 'ADMIN' && currentUser.id !== user.id
+                              currentUser && currentUser.role !== 'ADMIN' && currentUser.id !== client.id
                                 ? 'text-gray-300 cursor-not-allowed'
                                 : 'text-blue-600 hover:text-blue-900 hover:bg-blue-50 cursor-pointer'
                             }`}
                             title={
-                              currentUser && currentUser.role !== 'ADMIN' && currentUser.id !== user.id
+                              currentUser && currentUser.role !== 'ADMIN' && currentUser.id !== client.id
                                 ? 'Permissions insuffisantes pour modifier cet utilisateur'
                                 : 'Modifier'
                             }
                           >
                             <Edit2 size={16} />
                           </button>
-                          <button
-                            onClick={() => handleDeleteClick(user)}
-                            disabled={!!(currentUser && user.id === currentUser.id)}
-                            className={`p-1 rounded transition-colors ${
-                              currentUser && user.id === currentUser.id
-                                ? 'text-gray-300 cursor-not-allowed'
-                                : 'text-red-600 hover:text-red-900 hover:bg-red-50 cursor-pointer'
-                            }`}
-                            title={
-                              currentUser && user.id === currentUser.id
-                                ? 'Vous ne pouvez pas supprimer votre propre compte'
-                                : 'Supprimer'
-                            }
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleDeleteClick(client)}
+                              disabled={!!(currentUser && client.id === currentUser.id)}
+                              className={`p-1 rounded transition-colors ${
+                                currentUser && client.id === currentUser.id
+                                  ? 'text-gray-300 cursor-not-allowed'
+                                  : 'text-red-600 hover:text-red-900 hover:bg-red-50 cursor-pointer'
+                              }`}
+                              title={
+                                currentUser && client.id === currentUser.id
+                                  ? 'Vous ne pouvez pas supprimer votre propre compte'
+                                  : 'Supprimer'
+                              }
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -577,19 +524,23 @@ const Clients: React.FC = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleSubmit}
-        user={selectedUser}
+        user={selectedClient}
         mode={modalMode}
+        forcedRole="CLIENT"
       />
 
       {/* Modal de confirmation de suppression */}
       <ConfirmModal
         isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setClientToDelete(null);
+        }}
         onConfirm={handleDelete}
-        title="Supprimer l'utilisateur"
-        message={`Êtes-vous sûr de vouloir supprimer l'utilisateur ${userToDelete?.firstName} ${userToDelete?.lastName} ? Cette action est irréversible.`}
+        title="Supprimer le client"
+        message={`Êtes-vous sûr de vouloir supprimer ${clientToDelete?.firstName} ${clientToDelete?.lastName} ? Cette action est irréversible.`}
         confirmText="Supprimer"
-        type="danger"
+        cancelText="Annuler"
       />
     </div>
   );

@@ -5,7 +5,7 @@ export interface User {
   email: string;
   phoneNumber: string;
   type: 'REGULAR';
-  role: 'CLIENT' | 'ADMIN';
+  role: 'CLIENT' | 'ADMIN' | 'COMMERCIAL';
   companyName?: string;
   siretNumber?: string;
   urlPicture?: string;
@@ -19,7 +19,7 @@ export interface CreateUserInput {
   email: string;
   password: string;
   phoneNumber: string;
-  role: 'CLIENT' | 'ADMIN';
+  role: 'CLIENT' | 'ADMIN' | 'COMMERCIAL';
   companyName?: string;
   siretNumber?: string;
   urlPicture?: string;
@@ -30,7 +30,7 @@ export interface UpdateUserInput {
   lastName?: string;
   email?: string;
   phoneNumber?: string;
-  role?: 'CLIENT' | 'ADMIN';
+  role?: 'CLIENT' | 'ADMIN' | 'COMMERCIAL';
   companyName?: string;
   siretNumber?: string;
   urlPicture?: string;
