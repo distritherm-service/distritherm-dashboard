@@ -78,8 +78,24 @@ apiClient.interceptors.response.use(
   async (error: AxiosError<ApiError>) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
+    // Ignorer l'intercepteur si la requête est marquée
+    if (originalRequest?.headers?.['X-Skip-Interceptor'] === 'true') {
+      return Promise.reject(error);
+    }
+
+    // Si pas de token et erreur 401, rejeter directement sans tenter de rafraîchir
+    const token = localStorage.getItem('accessToken');
+    if (!token && error.response?.status === 401) {
+      return Promise.reject(error);
+    }
+
     // Tentative de rafraîchissement si 401 (token expiré)
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !originalRequest._retry && token) {
+      // Vérifier si on est déjà sur la page de login pour éviter les boucles
+      if (window.location.pathname === '/login') {
+        return Promise.reject(error);
+      }
+
       if (isRefreshing) {
         // On met la requête en file d'attente
         return new Promise((resolve, reject) => {
@@ -110,7 +126,7 @@ apiClient.interceptors.response.use(
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
-        // Rediriger vers la page de connexion
+        // Rediriger vers la page de connexion seulement si on n'y est pas déjà
         if (window.location.pathname !== '/login') {
           window.location.href = '/login';
         }

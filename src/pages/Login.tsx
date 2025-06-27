@@ -75,9 +75,11 @@ const Login: React.FC = () => {
           transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
           className="flex justify-center mb-8"
         >
-          <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center shadow-xl">
-            <span className="text-white font-bold text-4xl">D</span>
-          </div>
+          <img 
+            src="/logods.png" 
+            alt="Logo Distritherm" 
+            className="w-60 h-40 object-contain"
+          />
         </motion.div>
 
         {/* Title */}
@@ -87,9 +89,7 @@ const Login: React.FC = () => {
           transition={{ delay: 0.3 }}
           className="text-center mb-8"
         >
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            Distritherm Services
-          </h1>
+         
           <p className="text-gray-600">
             Connectez-vous à votre espace admin
           </p>
@@ -159,22 +159,6 @@ const Login: React.FC = () => {
               </button>
             </div>
           </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className="flex items-center justify-center"
-          >
-            <label className="flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                className="w-4 h-4 text-emerald-500 border-gray-300 rounded focus:ring-emerald-500 cursor-pointer"
-              />
-              <span className="ml-2 text-sm text-gray-600">Se souvenir de moi</span>
-            </label>
-          </motion.div>
-
           <motion.button
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

@@ -36,6 +36,18 @@ export const useUsers = (initialParams?: GetUsersParams) => {
     setState(prev => ({ ...prev, loading: true, error: null }));
     
     try {
+      // Vérifier si un token existe avant de faire l'appel
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        setState({
+          users: [],
+          meta: null,
+          loading: false,
+          error: null,
+        });
+        return;
+      }
+      
       const response: UsersResponse = await userService.getUsers(params || paramsRef.current);
       setState({
         users: response.users,
@@ -43,12 +55,22 @@ export const useUsers = (initialParams?: GetUsersParams) => {
         loading: false,
         error: null,
       });
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        error: error instanceof Error ? error.message : 'Erreur lors du chargement des utilisateurs',
-        loading: false,
-      }));
+    } catch (error: any) {
+      // Ne pas afficher d'erreur si c'est une erreur 401 (sera gérée par l'interceptor)
+      if (error.response?.status !== 401) {
+        setState(prev => ({
+          ...prev,
+          error: error instanceof Error ? error.message : 'Erreur lors du chargement des utilisateurs',
+          loading: false,
+        }));
+      } else {
+        setState({
+          users: [],
+          meta: null,
+          loading: false,
+          error: null,
+        });
+      }
     }
   }, []);
 
@@ -131,7 +153,18 @@ export const useUsers = (initialParams?: GetUsersParams) => {
 
   // Charger les utilisateurs au montage du composant uniquement
   useEffect(() => {
-    loadUsers(paramsRef.current);
+    // Vérifier si un token existe avant de charger les données
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      loadUsers(paramsRef.current);
+    } else {
+      setState({
+        users: [],
+        meta: null,
+        loading: false,
+        error: null,
+      });
+    }
   }, [loadUsers]);
 
   return {

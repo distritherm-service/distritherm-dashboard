@@ -47,30 +47,49 @@ export const authService = {
    */
   async refreshToken(): Promise<RefreshTokenResponse> {
     try {
+      // Vérifier d'abord si on a un token d'accès
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) {
+        throw new Error('Aucun token d\'accès trouvé');
+      }
+
       const response = await apiClient.post<RefreshTokenResponse>(
         '/auth/refresh-token',
         {},
         {
-          withCredentials: true
+          withCredentials: true,
+          // Marquer cette requête pour qu'elle ne soit pas interceptée
+          headers: {
+            'X-Skip-Interceptor': 'true'
+          }
         }
       );
+      
       return response.data;
-    } catch (error) {
-      const refreshToken = localStorage.getItem('refreshToken');
-      if (refreshToken) {
-        try {
-          const response = await apiClient.post<RefreshTokenResponse>(
-            '/auth/refresh-token',
-            {},
-            {
-              params: { refresh_token: refreshToken },
-              withCredentials: true
-            }
-          );
-          return response.data;
-        } catch (retryError) {
-          const message = handleApiError(retryError as AxiosError<ApiError>);
-          throw new Error(message);
+    } catch (error: any) {
+      // Si c'est une erreur 401, essayer avec le refresh token en paramètre
+      if (error.response?.status === 401) {
+        const refreshToken = localStorage.getItem('refreshToken');
+        if (refreshToken) {
+          try {
+            const response = await apiClient.post<RefreshTokenResponse>(
+              '/auth/refresh-token',
+              {},
+              {
+                params: { refresh_token: refreshToken },
+                withCredentials: true,
+                // Marquer cette requête pour qu'elle ne soit pas interceptée
+                headers: {
+                  'X-Skip-Interceptor': 'true'
+                }
+              }
+            );
+            
+            return response.data;
+          } catch (retryError) {
+            const message = handleApiError(retryError as AxiosError<ApiError>);
+            throw new Error(message);
+          }
         }
       }
       
