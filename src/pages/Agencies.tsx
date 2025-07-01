@@ -19,7 +19,7 @@ const formatDate = (date: Date | string | undefined) => {
 const Agencies: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(10);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [selectedAgency, setSelectedAgency] = useState<Agency | null>(null);
