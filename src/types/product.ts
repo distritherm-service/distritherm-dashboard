@@ -9,6 +9,7 @@ export interface Product {
   quantity: number;
   imageUrl?: string;
   images?: string[];
+  imagesUrl?: string[];
   brandId: number;
   brandName?: string;
   categoryId: number;
@@ -25,36 +26,65 @@ export interface Product {
   };
   createdAt: Date;
   updatedAt: Date;
+  priceHt?: number;
+  priceTtc?: number;
+  promotionPrice?: number;
+  promotionEndDate?: string;
+  promotionPercentage?: number;
+  isInPromotion?: boolean;
+  isFavorited?: boolean;
+  itemCode?: string;
+  directorWord1?: string;
+  directorWord2?: string;
+  designation1?: string;
+  designation2?: string;
+  complementDesignation?: string;
+  packaging?: string;
+  packagingType?: string;
+  submissionFgaz?: string;
+  fgazFile?: string;
+  label?: string;
+  unity?: string;
+  familyCode?: string;
+  ecoContributionPercentage?: number;
+  ecoContributionApplication?: boolean;
 }
 
 export interface CreateProductInput {
   name: string;
   description?: string;
-  sku: string;
-  price: number;
-  compareAtPrice?: number;
-  cost?: number;
   quantity: number;
-  imageUrl?: string;
   brandId: number;
   categoryId: number;
   isActive: boolean;
-  isFeatured: boolean;
-  tags?: string[];
-}
-
-export interface UpdateProductInput {
-  name?: string;
-  description?: string;
-  sku?: string;
-  price?: number;
-  compareAtPrice?: number;
-  cost?: number;
-  quantity?: number;
-  imageUrl?: string;
-  brandId?: number;
-  categoryId?: number;
-  isActive?: boolean;
   isFeatured?: boolean;
   tags?: string[];
+  priceHt: number;
+  priceTtc: number;
+  imagesUrl?: string[];
+  itemCode: string;
+  directorWord1?: string;
+  directorWord2?: string;
+  designation1?: string;
+  designation2?: string;
+  complementDesignation?: string;
+  packaging?: string;
+  packagingType?: string;
+  submissionFgaz?: string;
+  fgazFile?: string;
+  label?: string;
+  unity?: string;
+  weight?: number;
+  familyCode?: string;
+  ecoContributionPercentage?: number;
+  ecoContributionApplication?: boolean;
+}
+
+export interface UpdateProductInput extends Partial<CreateProductInput> {}
+
+export interface ProductMeta {
+  currentPage: number;
+  lastPage: number;
+  perPage: number;
+  total: number;
 } 

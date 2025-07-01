@@ -5,78 +5,20 @@ import type { CreatePromotionInput } from '../types/promotion';
 import PromotionModal from '../components/features/PromotionModal';
 import ConfirmModal from '../components/features/ConfirmModal';
 import { useToast } from '../contexts/ToastContext';
+import { usePromotions } from '../hooks/usePromotions';
 
-// Données fictives de produits (extraites de la page Produits)
-const mockProducts: Product[] = [
-  {
-    id: 1,
-    name: 'Climatiseur Daikin FTXM25R',
-    description: 'Climatiseur mural inverter 2.5kW, classe énergétique A+++',
-    sku: 'DAI-FTXM25R',
-    price: 899.99,
-    compareAtPrice: 1099.99,
-    cost: 650,
-    quantity: 15,
-    imageUrl: '/knauf-logo.png',
-    brandId: 1,
-    brandName: 'Daikin',
-    categoryId: 1,
-    categoryName: 'Climatisation',
-    isActive: true,
-    isFeatured: true,
-    tags: ['inverter', 'mural', 'silencieux'],
-    createdAt: new Date('2024-01-15'),
-    updatedAt: new Date('2024-01-15'),
-  },
-  {
-    id: 2,
-    name: 'Pompe à chaleur Mitsubishi Ecodan',
-    description: 'Pompe à chaleur air-eau haute performance',
-    sku: 'MIT-ECODAN-8',
-    price: 4599.99,
-    compareAtPrice: 5299.99,
-    cost: 3200,
-    quantity: 5,
-    imageUrl: '/knauf-logo.png',
-    brandId: 2,
-    brandName: 'Mitsubishi',
-    categoryId: 2,
-    categoryName: 'Chauffage',
-    isActive: true,
-    isFeatured: true,
-    tags: ['pompe-chaleur', 'air-eau'],
-    createdAt: new Date('2024-01-16'),
-    updatedAt: new Date('2024-01-16'),
-  },
-  {
-    id: 3,
-    name: 'Climatiseur LG Dual Inverter',
-    description: 'Climatiseur split avec technologie Dual Inverter, 3.5kW',
-    sku: 'LG-DUAL35',
-    price: 749.99,
-    // Pas de prix barré -> pas de promo
-    quantity: 8,
-    imageUrl: '/knauf-logo.png',
-    brandId: 3,
-    brandName: 'LG',
-    categoryId: 1,
-    categoryName: 'Climatisation',
-    isActive: true,
-    isFeatured: false,
-    tags: ['dual-inverter', 'split'],
-    createdAt: new Date('2024-01-17'),
-    updatedAt: new Date('2024-01-17'),
-  },
-];
-
-// Produits en promotion = ceux qui ont un prix barré supérieur
-const promotionalProducts: Product[] = mockProducts.filter(
-  (p) => p.compareAtPrice && p.compareAtPrice > p.price,
-);
+// Les données seront désormais chargées depuis l'API via usePromotions
 
 const Promotions: React.FC = () => {
   const { showSuccess, showError } = useToast();
-  const [promotions, setPromotions] = useState<Product[]>(promotionalProducts);
+  const {
+    products: promotions,
+    loading,
+    error,
+    meta,
+    refreshPromotions,
+    loadPromotions,
+  } = usePromotions();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -88,8 +30,25 @@ const Promotions: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [promotionToDelete, setPromotionToDelete] = useState<Product | null>(null);
 
+  // Évite les variables inutilisées grâce à un rendu conditionnel simple
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full py-20 text-gray-600">
+        Chargement des promotions...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full py-20 text-red-600">
+        {error}
+      </div>
+    );
+  }
+
   // Filtrage
-  const filteredPromotions = promotions.filter((prod) => {
+  const filteredPromotions = promotions.filter((prod: Product) => {
     const matchesSearch =
       prod.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (prod.description ?? '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -102,12 +61,9 @@ const Promotions: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
-  // Pagination
-  const totalPages = Math.ceil(filteredPromotions.length / itemsPerPage);
-  const paginatedPromotions = filteredPromotions.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage,
-  );
+  // Pagination (basée sur la meta de l'API si dispo)
+  const totalPages = meta ? meta.lastPage : Math.ceil(filteredPromotions.length / itemsPerPage);
+  const paginatedPromotions = filteredPromotions;
 
   // Formatage
   const formatDiscount = (prod: Product) => {
@@ -156,15 +112,8 @@ const Promotions: React.FC = () => {
     if (!promotionToDelete) return;
     
     try {
-      // Simuler la suppression (remplacer par l'appel API réel)
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Fermer le modal immédiatement
-      setIsDeleteModalOpen(false);
-      setPromotionToDelete(null);
-      
-      // Mettre à jour la liste
-      setPromotions(prev => prev.filter(p => p.id !== promotionToDelete.id));
+      // Recharger la liste depuis l'API
+      refreshPromotions();
       showSuccess('Promotion supprimée avec succès');
       
     } catch (error: any) {
@@ -177,12 +126,15 @@ const Promotions: React.FC = () => {
   };
 
   const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= totalPages) setCurrentPage(page);
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+      loadPromotions({ page, limit: itemsPerPage });
+    }
   };
 
   // Actualiser (réinitialise la recherche & filtres)
   const handleRefresh = () => {
-    setPromotions([...promotionalProducts]);
+    refreshPromotions();
     setSearchTerm('');
     setFilterStatus('all');
     setCurrentPage(1);
@@ -231,7 +183,7 @@ const Promotions: React.FC = () => {
               type="text"
               placeholder="Rechercher par nom ou description..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
@@ -241,7 +193,7 @@ const Promotions: React.FC = () => {
               <label className="text-sm text-gray-600">Statut:</label>
               <select
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as any)}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterStatus(e.target.value as any)}
                 className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="all">Tous</option>
@@ -254,9 +206,11 @@ const Promotions: React.FC = () => {
               <label className="text-sm text-gray-600">Afficher:</label>
               <select
                 value={itemsPerPage}
-                onChange={(e) => {
-                  setItemsPerPage(Number(e.target.value));
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                  const newLimit = Number(e.target.value);
+                  setItemsPerPage(newLimit);
                   setCurrentPage(1);
+                  loadPromotions({ page: 1, limit: newLimit });
                 }}
                 className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
@@ -269,10 +223,10 @@ const Promotions: React.FC = () => {
         </div>
       </div>
 
-      {/* Tableau */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      {/* Cartes */}
+      <div>
         {paginatedPromotions.length === 0 ? (
-          <div className="p-8 text-center">
+          <div className="p-8 text-center bg-white rounded-lg shadow">
             <Percent size={48} className="mx-auto text-gray-300 mb-4" />
             <p className="text-gray-700 font-medium mb-2">Aucune promotion</p>
             <p className="text-gray-500">
@@ -283,81 +237,56 @@ const Promotions: React.FC = () => {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Promotion
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Remise
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Période
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Statut
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {paginatedPromotions.map((promo) => (
-                    <tr key={promo.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{promo.name}</div>
-                        {promo.description && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            {promo.description.length > 80
-                              ? promo.description.substring(0, 77) + '...'
-                              : promo.description}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {formatDiscount(promo)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {formatDate(promo.updatedAt)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {promo.isActive ? (
-                          <span className="inline-flex items-center gap-1 text-emerald-600 text-sm font-medium">
-                            <CheckCircle size={14} /> Active
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-gray-400 text-sm font-medium">
-                            <XCircle size={14} /> Inactive
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end gap-3">
-                        <button
-                          onClick={() => console.log('Voir', promo)}
-                          className="text-gray-500 hover:text-blue-600 transition-colors cursor-pointer"
-                        >
-                          <Eye size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleEdit(promo)}
-                          className="text-gray-500 hover:text-emerald-600 transition-colors cursor-pointer"
-                        >
-                          <Edit2 size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(promo)}
-                          className="text-gray-500 hover:text-red-600 transition-colors cursor-pointer"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {paginatedPromotions.map((promo: Product) => (
+                <div key={promo.id} className="bg-white rounded-lg shadow hover:shadow-md transition-shadow flex flex-col">
+                  {/* Image */}
+                  {promo.imageUrl && (
+                    <img src={promo.imageUrl} alt={promo.name} className="h-40 w-full object-cover rounded-t-lg" loading="lazy" />
+                  )}
+
+                  {/* Contenu */}
+                  <div className="p-4 flex-1 flex flex-col">
+                    <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2">{promo.name}</h3>
+                    <p className="text-xs text-gray-500 mb-2 line-clamp-2">{promo.description}</p>
+
+                    <div className="text-sm text-gray-700 space-y-1 mt-auto">
+                      <p><span className="font-medium">Catégorie :</span> {promo.categoryName || '-'}</p>
+                      <p><span className="font-medium">Marque :</span> {promo.brandName || '-'}</p>
+                      <p><span className="font-medium">Prix HT :</span> {promo.priceHt?.toFixed(2)} €</p>
+                      <p><span className="font-medium">Prix TTC :</span> {promo.priceTtc?.toFixed(2)} €</p>
+                      <p><span className="font-medium">Stock :</span> {promo.quantity}</p>
+                      <p><span className="font-medium">Remise :</span> {formatDiscount(promo)}</p>
+                      <p><span className="font-medium">Fin promo :</span> {formatDate(promo.updatedAt)}</p>
+                    </div>
+                  </div>
+
+                  {/* Footer – actions & statut */}
+                  <div className="flex items-center justify-between px-4 py-3 border-t">
+                    {promo.isActive ? (
+                      <span className="inline-flex items-center gap-1 text-emerald-600 text-sm font-medium">
+                        <CheckCircle size={14} /> Active
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-gray-400 text-sm font-medium">
+                        <XCircle size={14} /> Inactive
+                      </span>
+                    )}
+
+                    <div className="flex gap-3 text-gray-500">
+                      <button onClick={() => console.log('Voir', promo)} className="hover:text-blue-600">
+                        <Eye size={18} />
+                      </button>
+                      <button onClick={() => handleEdit(promo)} className="hover:text-emerald-600">
+                        <Edit2 size={18} />
+                      </button>
+                      <button onClick={() => handleDeleteClick(promo)} className="hover:text-red-600">
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* Pagination */}

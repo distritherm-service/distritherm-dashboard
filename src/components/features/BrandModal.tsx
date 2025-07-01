@@ -19,11 +19,7 @@ const BrandModal: React.FC<BrandModalProps> = ({
 }) => {
   const [formData, setFormData] = useState<CreateBrandInput>({
     name: '',
-    logo: '',
-    description: '',
-    website: '',
-    country: '',
-    isActive: true
+    isActive: true,
   });
 
   const [errors, setErrors] = useState<Partial<CreateBrandInput>>({});
@@ -39,20 +35,12 @@ const BrandModal: React.FC<BrandModalProps> = ({
     if (brand && mode === 'edit') {
       setFormData({
         name: brand.name,
-        logo: brand.logo || '',
-        description: brand.description || '',
-        website: brand.website || '',
-        country: brand.country || '',
-        isActive: brand.isActive
+        isActive: brand.isActive,
       });
     } else {
       setFormData({
         name: '',
-        logo: '',
-        description: '',
-        website: '',
-        country: '',
-        isActive: true
+        isActive: true,
       });
     }
     setErrors({});
@@ -65,21 +53,8 @@ const BrandModal: React.FC<BrandModalProps> = ({
       newErrors.name = 'Le nom de la marque est requis';
     }
 
-    if (formData.website && !isValidUrl(formData.website)) {
-      newErrors.website = 'L\'URL du site web n\'est pas valide';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
-
-  const isValidUrl = (url: string): boolean => {
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
-    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -145,71 +120,9 @@ const BrandModal: React.FC<BrandModalProps> = ({
             )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              URL du logo
-            </label>
-            <input
-              type="text"
-              value={formData.logo}
-              onChange={(e) => setFormData({ ...formData, logo: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              placeholder="https://exemple.com/logo.png"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              placeholder="Décrivez brièvement la marque..."
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Site web
-            </label>
-            <input
-              type="text"
-              value={formData.website}
-              onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
-                errors.website ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder="https://www.exemple.com"
-            />
-            {errors.website && (
-              <p className="mt-1 text-xs text-red-500">{errors.website}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Pays d'origine
-            </label>
-            <select
-              value={formData.country}
-              onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            >
-              <option value="">Sélectionner un pays</option>
-              <option value="France">France</option>
-              <option value="Japon">Japon</option>
-              <option value="Corée du Sud">Corée du Sud</option>
-              <option value="Chine">Chine</option>
-              <option value="Allemagne">Allemagne</option>
-              <option value="États-Unis">États-Unis</option>
-              <option value="Italie">Italie</option>
-              <option value="Espagne">Espagne</option>
-              <option value="Autre">Autre</option>
-            </select>
-          </div>
+          {mode === 'edit' && (
+            <p className="text-sm text-gray-500">Seul le nom peut être modifié pour le moment.</p>
+          )}
 
           <div className="flex items-center">
             <input

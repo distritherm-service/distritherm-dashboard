@@ -26,20 +26,19 @@ const ProductModal: React.FC<ProductModalProps> = ({
   const [formData, setFormData] = useState<CreateProductInput>({
     name: '',
     description: '',
-    sku: '',
-    price: 0,
-    compareAtPrice: undefined,
-    cost: undefined,
+    itemCode: '',
     quantity: 0,
-    imageUrl: '',
+    priceHt: 0,
+    priceTtc: 0,
+    imagesUrl: [],
     brandId: 0,
     categoryId: 0,
     isActive: true,
     isFeatured: false,
-    tags: []
+    tags: [],
   });
 
-  const [errors, setErrors] = useState<Partial<Record<keyof CreateProductInput, string>>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isAnimating, setIsAnimating] = useState(false);
   const [tagInput, setTagInput] = useState('');
 
@@ -54,12 +53,11 @@ const ProductModal: React.FC<ProductModalProps> = ({
       setFormData({
         name: product.name,
         description: product.description || '',
-        sku: product.sku,
-        price: product.price,
-        compareAtPrice: product.compareAtPrice,
-        cost: product.cost,
+        itemCode: product.itemCode || '',
+        priceHt: product.priceHt || 0,
+        priceTtc: product.priceTtc || 0,
         quantity: product.quantity,
-        imageUrl: product.imageUrl || '',
+        imagesUrl: product.imagesUrl || product.images || (product.imageUrl ? [product.imageUrl] : []),
         brandId: product.brandId,
         categoryId: product.categoryId,
         isActive: product.isActive,
@@ -70,12 +68,11 @@ const ProductModal: React.FC<ProductModalProps> = ({
       setFormData({
         name: '',
         description: '',
-        sku: '',
-        price: 0,
-        compareAtPrice: undefined,
-        cost: undefined,
+        itemCode: '',
+        priceHt: 0,
+        priceTtc: 0,
         quantity: 0,
-        imageUrl: '',
+        imagesUrl: [],
         brandId: 0,
         categoryId: 0,
         isActive: true,
@@ -88,16 +85,19 @@ const ProductModal: React.FC<ProductModalProps> = ({
   }, [product, mode, isOpen, brands, categories]);
 
   const validate = (): boolean => {
-    const newErrors: Partial<Record<keyof CreateProductInput, string>> = {};
+    const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
       newErrors.name = 'Le nom du produit est requis';
     }
-    if (!formData.sku.trim()) {
-      newErrors.sku = 'Le SKU est requis';
+    if (!formData.itemCode.trim()) {
+      newErrors.itemCode = 'Le code article est requis';
     }
-    if (formData.price <= 0) {
-      newErrors.price = 'Le prix doit être supérieur à 0';
+    if (formData.priceHt <= 0) {
+      newErrors.priceHt = 'Le prix HT doit être supérieur à 0';
+    }
+    if (formData.priceTtc <= 0) {
+      newErrors.priceTtc = 'Le prix TTC doit être supérieur à 0';
     }
     if (formData.quantity < 0) {
       newErrors.quantity = 'La quantité ne peut pas être négative';
@@ -178,6 +178,19 @@ const ProductModal: React.FC<ProductModalProps> = ({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto max-h-[calc(90vh-180px)]">
           <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Code article</label>
+              <input
+                type="text"
+                value={formData.itemCode}
+                onChange={(e) => setFormData({ ...formData, itemCode: e.target.value })}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+                  errors.itemCode ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="EX: PROD-123456"
+              />
+              {errors.itemCode && <p className="mt-1 text-xs text-red-500">{errors.itemCode}</p>}
+            </div>
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Nom du produit
@@ -193,24 +206,6 @@ const ProductModal: React.FC<ProductModalProps> = ({
               />
               {errors.name && (
                 <p className="mt-1 text-xs text-red-500">{errors.name}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                SKU
-              </label>
-              <input
-                type="text"
-                value={formData.sku}
-                onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
-                  errors.sku ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="Ex: DAI-12K-001"
-              />
-              {errors.sku && (
-                <p className="mt-1 text-xs text-red-500">{errors.sku}</p>
               )}
             </div>
 
@@ -246,54 +241,39 @@ const ProductModal: React.FC<ProductModalProps> = ({
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Prix (€)
+                Prix HT (€)
               </label>
               <input
                 type="number"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+                value={formData.priceHt}
+                onChange={(e) => setFormData({ ...formData, priceHt: Number(e.target.value) })}
                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
-                  errors.price ? 'border-red-500' : 'border-gray-300'
+                  errors.priceHt ? 'border-red-500' : 'border-gray-300'
                 }`}
                 min="0"
                 step="0.01"
               />
-              {errors.price && (
-                <p className="mt-1 text-xs text-red-500">{errors.price}</p>
-              )}
+              {errors.priceHt && <p className="mt-1 text-xs text-red-500">{errors.priceHt}</p>}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Prix comparé (€)
+                Prix TTC (€)
               </label>
               <input
                 type="number"
-                value={formData.compareAtPrice || ''}
-                onChange={(e) => setFormData({ ...formData, compareAtPrice: e.target.value ? Number(e.target.value) : undefined })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                value={formData.priceTtc}
+                onChange={(e) => setFormData({ ...formData, priceTtc: Number(e.target.value) })}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+                  errors.priceTtc ? 'border-red-500' : 'border-gray-300'
+                }`}
                 min="0"
                 step="0.01"
-                placeholder="Prix barré"
               />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Coût (€)
-              </label>
-              <input
-                type="number"
-                value={formData.cost || ''}
-                onChange={(e) => setFormData({ ...formData, cost: e.target.value ? Number(e.target.value) : undefined })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                min="0"
-                step="0.01"
-                placeholder="Coût d'achat"
-              />
+              {errors.priceTtc && <p className="mt-1 text-xs text-red-500">{errors.priceTtc}</p>}
             </div>
           </div>
 
@@ -346,15 +326,13 @@ const ProductModal: React.FC<ProductModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              URL de l'image
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">URLs des images (séparées par des virgules)</label>
             <input
               type="text"
-              value={formData.imageUrl}
-              onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+              value={formData.imagesUrl?.join(', ') || ''}
+              onChange={(e) => setFormData({ ...formData, imagesUrl: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              placeholder="https://exemple.com/image.jpg"
+              placeholder="https://exemple.com/img1.jpg, https://exemple.com/img2.jpg"
             />
           </div>
 

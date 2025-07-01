@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Tag, Plus, Search, Edit2, Trash2, Globe, Package, AlertCircle, ChevronLeft, ChevronRight, CheckCircle, XCircle } from 'lucide-react';
+import { Tag, BadgeCheck, Plus, Search, Edit2, Trash2, Globe, Package, AlertCircle, ChevronLeft, ChevronRight, CheckCircle, XCircle } from 'lucide-react';
 import { useBrands } from '../hooks/useBrands';
 import type { Brand, CreateBrandInput } from '../types/brand';
 import BrandModal from '../components/features/BrandModal';
@@ -27,6 +27,7 @@ const Brands: React.FC = () => {
     createBrand,
     updateBrand,
     loadBrands,
+    deleteBrand,
     clearError,
     refreshBrands
   } = useBrands({ page: currentPage, limit: itemsPerPage });
@@ -95,37 +96,16 @@ const Brands: React.FC = () => {
   // Supprimer la marque
   const handleDelete = async () => {
     if (!brandToDelete) return;
-    
-    try {
-      const response = await fetch(`/api/v1/brands/${brandToDelete.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        },
-      });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erreur lors de la suppression');
-      }
+    const success = await deleteBrand(brandToDelete.id);
 
-      // Fermer le modal immédiatement
-      setIsDeleteModalOpen(false);
-      setBrandToDelete(null);
-      
-      // Recharger les marques
-      await loadBrands({ page: currentPage, limit: itemsPerPage });
-      
-      // Message de succès (optionnel)
-      console.log(`Marque "${brandToDelete.name}" supprimée avec succès`);
+    if (success) {
       showSuccess(`Marque "${brandToDelete.name}" supprimée avec succès`);
-      
-    } catch (error: any) {
-      console.error('Erreur lors de la suppression:', error);
-      showError(error.message || 'Erreur lors de la suppression de la marque');
-    } finally {
       setIsDeleteModalOpen(false);
       setBrandToDelete(null);
+      clearError();
+    } else {
+      showError(error || 'Erreur lors de la suppression de la marque');
     }
   };
 
@@ -196,7 +176,7 @@ const Brands: React.FC = () => {
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Tag size={32} className="text-emerald-500" />
+          <BadgeCheck size={36} className="text-emerald-600 bg-emerald-100 rounded-md p-1" />
           <div>
             <h1 className="text-3xl font-bold text-gray-800">Marques</h1>
             {meta && (
@@ -316,8 +296,8 @@ const Brands: React.FC = () => {
                             className="w-16 h-16 object-contain rounded-lg bg-gray-50"
                           />
                         ) : (
-                          <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
-                            <Tag size={24} className="text-gray-400" />
+                          <div className="w-16 h-16 bg-emerald-50 rounded-lg flex items-center justify-center">
+                            <BadgeCheck size={26} className="text-emerald-600" />
                           </div>
                         )}
                         <div>

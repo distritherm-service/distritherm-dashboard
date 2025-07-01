@@ -1,131 +1,29 @@
 import React, { useState } from 'react';
 import { Package, Plus, Search, Edit2, Trash2, Image, CheckCircle, XCircle, ChevronLeft, ChevronRight, Star, TrendingUp, RefreshCcw, Eye } from 'lucide-react';
 import type { Product, CreateProductInput } from '../types/product';
-import type { Brand } from '../types/brand';
-import type { Category } from '../types/category';
 import ProductModal from '../components/features/ProductModal';
 import ConfirmModal from '../components/features/ConfirmModal';
 import { useToast } from '../contexts/ToastContext';
-
-// Données de démonstration pour les marques
-const mockBrands: Brand[] = [
-  { id: '1', name: 'Daikin', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  { id: '2', name: 'Mitsubishi', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  { id: '3', name: 'LG', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  { id: '4', name: 'Samsung', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-];
-
-// Données de démonstration pour les catégories
-const mockCategories: Category[] = [
-  { id: 1, name: 'Climatisation', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 2, name: 'Chauffage', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 3, name: 'Ventilation', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-];
-
-// Données de démonstration pour les produits
-const mockProducts: Product[] = [
-  {
-    id: 1,
-    name: 'Climatiseur Daikin FTXM25R',
-    description: 'Climatiseur mural inverter 2.5kW, classe énergétique A+++',
-    sku: 'DAI-FTXM25R',
-    price: 899.99,
-    compareAtPrice: 1099.99,
-    cost: 650,
-    quantity: 15,
-    imageUrl: '/knauf-logo.png',
-    brandId: 1,
-    brandName: 'Daikin',
-    categoryId: 1,
-    categoryName: 'Climatisation',
-    isActive: true,
-    isFeatured: true,
-    tags: ['inverter', 'mural', 'silencieux'],
-    createdAt: new Date('2024-01-15'),
-    updatedAt: new Date('2024-01-15')
-  },
-  {
-    id: 2,
-    name: 'Pompe à chaleur Mitsubishi Ecodan',
-    description: 'Pompe à chaleur air-eau haute performance pour chauffage et eau chaude',
-    sku: 'MIT-ECODAN-8',
-    price: 4599.99,
-    compareAtPrice: 5299.99,
-    cost: 3200,
-    quantity: 5,
-    imageUrl: '/knauf-logo.png',
-    brandId: 2,
-    brandName: 'Mitsubishi',
-    categoryId: 2,
-    categoryName: 'Chauffage',
-    isActive: true,
-    isFeatured: true,
-    tags: ['pompe-chaleur', 'air-eau', 'eco'],
-    createdAt: new Date('2024-01-16'),
-    updatedAt: new Date('2024-01-16')
-  },
-  {
-    id: 3,
-    name: 'Climatiseur LG Dual Inverter',
-    description: 'Climatiseur split avec technologie Dual Inverter, 3.5kW',
-    sku: 'LG-DUAL35',
-    price: 749.99,
-    cost: 520,
-    quantity: 8,
-    imageUrl: '/knauf-logo.png',
-    brandId: 3,
-    brandName: 'LG',
-    categoryId: 1,
-    categoryName: 'Climatisation',
-    isActive: true,
-    isFeatured: false,
-    tags: ['dual-inverter', 'split'],
-    createdAt: new Date('2024-01-17'),
-    updatedAt: new Date('2024-01-17')
-  },
-  {
-    id: 4,
-    name: 'VMC Double Flux Aldes',
-    description: 'Ventilation mécanique contrôlée double flux avec récupération de chaleur',
-    sku: 'ALD-VMC-DF',
-    price: 1899.99,
-    cost: 1350,
-    quantity: 0,
-    brandId: 1,
-    brandName: 'Aldes',
-    categoryId: 3,
-    categoryName: 'Ventilation',
-    isActive: false,
-    isFeatured: false,
-    tags: ['vmc', 'double-flux', 'recuperation-chaleur'],
-    createdAt: new Date('2024-01-18'),
-    updatedAt: new Date('2024-01-18')
-  },
-  {
-    id: 5,
-    name: 'Climatiseur Samsung WindFree',
-    description: 'Climatiseur avec technologie WindFree pour un confort optimal',
-    sku: 'SAM-WF-25',
-    price: 999.99,
-    compareAtPrice: 1299.99,
-    cost: 720,
-    quantity: 12,
-    imageUrl: '/knauf-logo.png',
-    brandId: 4,
-    brandName: 'Samsung',
-    categoryId: 1,
-    categoryName: 'Climatisation',
-    isActive: true,
-    isFeatured: true,
-    tags: ['windfree', 'smart', 'wifi'],
-    createdAt: new Date('2024-01-19'),
-    updatedAt: new Date('2024-01-19')
-  }
-];
+import { useProducts } from '../hooks/useProducts';
+import { useBrands } from '../hooks/useBrands';
+import { useCategories } from '../hooks/useCategories';
 
 const Products: React.FC = () => {
   const { showSuccess, showError } = useToast();
-  const [products, setProducts] = useState<Product[]>(mockProducts);
+  // Hooks API
+  const {
+    products,
+    meta,
+    createProduct: createProductApi,
+    updateProduct: updateProductApi,
+    deleteProduct: deleteProductApi,
+    loadProducts,
+  } = useProducts();
+
+  // Marques & catégories
+  const { brands } = useBrands();
+  const { categories } = useCategories();
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
@@ -166,7 +64,7 @@ const Products: React.FC = () => {
   });
 
   // Pagination
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const totalPages = meta ? meta.lastPage : Math.ceil(filteredProducts.length / itemsPerPage);
   const paginatedProducts = filteredProducts.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
@@ -187,33 +85,23 @@ const Products: React.FC = () => {
   };
 
   // Soumettre le formulaire
-  const handleSubmit = (data: CreateProductInput) => {
-    if (modalMode === 'create') {
-      const newProduct: Product = {
-        id: Math.max(...products.map(p => p.id)) + 1,
-        ...data,
-        brandName: mockBrands.find(b => b.id === String(data.brandId))?.name,
-        categoryName: mockCategories.find(c => c.id === data.categoryId)?.name,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      setProducts([...products, newProduct]);
-      showSuccess('Produit créé avec succès');
-    } else if (selectedProduct) {
-      setProducts(products.map(prod => 
-        prod.id === selectedProduct.id
-          ? { 
-              ...prod, 
-              ...data,
-              brandName: mockBrands.find(b => b.id === String(data.brandId))?.name,
-              categoryName: mockCategories.find(c => c.id === data.categoryId)?.name,
-              updatedAt: new Date() 
-            }
-          : prod
-      ));
-      showSuccess('Produit modifié avec succès');
+  const handleSubmit = async (data: CreateProductInput) => {
+    try {
+      let success = false;
+      if (modalMode === 'create') {
+        success = await createProductApi(data);
+        if (success) showSuccess('Produit créé avec succès');
+      } else if (selectedProduct) {
+        success = await updateProductApi(selectedProduct.id, data);
+        if (success) showSuccess('Produit modifié avec succès');
+      }
+      if (success) {
+        setIsModalOpen(false);
+        loadProducts({ page: currentPage, limit: itemsPerPage });
+      }
+    } catch (err: any) {
+      showError(err.message || 'Erreur lors de l’enregistrement du produit');
     }
-    setIsModalOpen(false);
   };
 
   // Confirmer la suppression
@@ -227,27 +115,9 @@ const Products: React.FC = () => {
     if (!productToDelete) return;
     
     try {
-      const response = await fetch(`/api/v1/products/${productToDelete.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erreur lors de la suppression');
-      }
-
-      // Fermer le modal immédiatement
-      setIsDeleteModalOpen(false);
-      setProductToDelete(null);
-      
-      // Recharger les produits
-      handleRefresh();
+      await deleteProductApi(productToDelete.id);
       showSuccess(`Produit "${productToDelete.name}" supprimé avec succès`);
-      
+      loadProducts({ page: currentPage, limit: itemsPerPage });
     } catch (error: any) {
       console.error('Erreur lors de la suppression:', error);
       showError(error.message || 'Erreur lors de la suppression du produit');
@@ -261,12 +131,13 @@ const Products: React.FC = () => {
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
+      loadProducts({ page, limit: itemsPerPage });
     }
   };
 
   // Actualiser (réinitialise les filtres et recherche)
   const handleRefresh = () => {
-    setProducts([...mockProducts]);
+    loadProducts();
     setSearchTerm('');
     setFilterStatus('all');
     setFilterStock('all');
@@ -389,7 +260,7 @@ const Products: React.FC = () => {
                 className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="all">Toutes</option>
-                {mockBrands.map((brand) => (
+                {brands.map((brand) => (
                   <option key={brand.id} value={brand.id}>
                     {brand.name}
                   </option>
@@ -405,7 +276,7 @@ const Products: React.FC = () => {
                 className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="all">Toutes</option>
-                {mockCategories.map((category) => (
+                {categories.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.name}
                   </option>
@@ -420,6 +291,7 @@ const Products: React.FC = () => {
                 onChange={(e) => {
                   setItemsPerPage(Number(e.target.value));
                   setCurrentPage(1);
+                  loadProducts({ page: 1, limit: Number(e.target.value) });
                 }}
                 className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
@@ -689,8 +561,8 @@ const Products: React.FC = () => {
         onSubmit={handleSubmit}
         product={selectedProduct}
         mode={modalMode}
-        brands={mockBrands}
-        categories={mockCategories}
+        brands={brands}
+        categories={categories}
       />
 
       {/* Modal de confirmation de suppression */}

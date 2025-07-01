@@ -55,7 +55,7 @@ const Reviews: React.FC = () => {
     const term = searchTerm.toLowerCase();
     return (
       rev.customerName.toLowerCase().includes(term) ||
-      rev.orderNumber.toLowerCase().includes(term) ||
+      (rev.orderNumber?.toLowerCase().includes(term) ?? false) ||
       rev.comment.toLowerCase().includes(term)
     );
   });

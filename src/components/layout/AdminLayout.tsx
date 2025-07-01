@@ -8,12 +8,11 @@ import {
   Users,
   Star,
   TrendingUp,
-  Calendar,
-  Code,
   Tag,
   Grid3X3,
   Boxes,
   ShoppingBag,
+  Building2,
   Settings,
   LogOut
 } from 'lucide-react';
@@ -33,6 +32,7 @@ const menuItems: MenuItem[] = [
   { id: 'orders', label: 'Demandes reçues', icon: FileText, path: '/orders' },
   { id: 'order-details', label: 'Détails des commandes', icon: Package, path: '/order-details' },
   { id: 'clients', label: 'Clients', icon: Users, path: '/clients' },
+  { id: 'agencies', label: 'Mes agences', icon: Building2, path: '/agencies' },
   
   { id: 'commercial', label: 'Commerciaux', icon: TrendingUp, path: '/commercial' },
   { id: 'categories', label: 'Catégories', icon: Grid3X3, path: '/categories' },
@@ -40,8 +40,6 @@ const menuItems: MenuItem[] = [
   { id: 'products', label: 'Gestion Produit', icon: ShoppingBag, path: '/products' },
   { id: 'promotions', label: 'Promotions', icon: Tag, path: '/promotions' },
   { id: 'reviews', label: 'Revues', icon: Star, path: '/reviews' },
-  { id: 'calendar', label: 'Calendrier', icon: Calendar, path: '/calendar' },
-  { id: 'contact', label: 'Contact Développeur', icon: Code, path: '/contact' },
 ];
 
 const bottomMenuItems: MenuItem[] = [
