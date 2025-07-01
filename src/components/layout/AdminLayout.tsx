@@ -8,8 +8,6 @@ import {
   Users,
   Star,
   TrendingUp,
-  Calendar,
-  Code,
   Tag,
   Grid3X3,
   Boxes,
@@ -42,8 +40,6 @@ const menuItems: MenuItem[] = [
   { id: 'products', label: 'Gestion Produit', icon: ShoppingBag, path: '/products' },
   { id: 'promotions', label: 'Promotions', icon: Tag, path: '/promotions' },
   { id: 'reviews', label: 'Revues', icon: Star, path: '/reviews' },
-  { id: 'calendar', label: 'Calendrier', icon: Calendar, path: '/calendar' },
-  { id: 'contact', label: 'Contact Développeur', icon: Code, path: '/contact' },
 ];
 
 const bottomMenuItems: MenuItem[] = [

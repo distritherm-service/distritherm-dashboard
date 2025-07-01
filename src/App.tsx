@@ -14,8 +14,6 @@ import Clients from './pages/Clients';
 import Reviews from './pages/Reviews';
 import Settings from './pages/Settings';
 import Commercial from './pages/Commercial';
-import Calendar from './pages/Calendar';
-import Contact from './pages/Contact';
 import Profile from './pages/Profile';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Agencies from './pages/Agencies';
@@ -43,8 +41,6 @@ function App() {
               <Route path="/reviews" element={<Reviews />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/commercial" element={<Commercial />} />
-              <Route path="/calendar" element={<Calendar />} />
-              <Route path="/contact" element={<Contact />} />
               <Route path="/profile" element={<Profile />} />
             </Route>
           </Route>
