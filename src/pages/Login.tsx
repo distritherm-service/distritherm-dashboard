@@ -187,12 +187,9 @@ const Login: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8 }}
-            className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg"
+        
           >
-            <p className="text-xs text-blue-700 text-center">
-              <strong>Mode développement</strong><br />
-              Utilisez les identifiants fournis par l'administrateur
-            </p>
+           
           </motion.div>
         )}
 

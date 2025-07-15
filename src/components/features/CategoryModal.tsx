@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Info } from 'lucide-react';
 import type { Category, CreateCategoryInput } from '../../types/category';
+import { useAgencies } from '../../hooks/useAgencies';
 
 interface CategoryModalProps {
   isOpen: boolean;
@@ -28,11 +29,18 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
     haveChildren: false,
     description: '',
     parentCategoryId: null,
-    agenceId: 1 // TODO: Récupérer l'agence ID depuis le contexte utilisateur
+    agenceId: 0,
+    imageFile: undefined
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isAnimating, setIsAnimating] = useState(false);
+
+  // Chargement des agences pour l'affectation
+  const { agencies: agenciesList, loading: loadingAgencies } = useAgencies();
+
+  // Aperçu de l'image sélectionnée
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -51,7 +59,8 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
         haveChildren: category.haveChildren || false,
         description: category.description || '',
         parentCategoryId: category.parentCategoryId,
-        agenceId: category.agenceId || 1
+        agenceId: category.agenceId || 0,
+        imageFile: undefined
       });
     } else {
       setFormData({
@@ -63,8 +72,10 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
         haveChildren: false,
         description: '',
         parentCategoryId: null,
-        agenceId: 1
+        agenceId: 0,
+        imageFile: undefined
       });
+      setImagePreview(null);
     }
     setErrors({});
   }, [category, mode, isOpen]);
@@ -86,6 +97,15 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
 
     if (formData.level < 0) {
       newErrors.level = 'Le niveau doit être positif';
+    }
+
+    if (!formData.agenceId) {
+      newErrors.agenceId = 'L\'agence est requise';
+    }
+
+    // Image requise uniquement à la création
+    if (mode === 'create' && !formData.imageFile) {
+      newErrors.imageFile = 'Une image est requise';
     }
 
     setErrors(newErrors);
@@ -190,6 +210,36 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
               <p className="mt-1 text-xs text-gray-500">
                 Si vide, sera généré automatiquement à partir du nom
               </p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Agence
+            </label>
+            <select
+              value={formData.agenceId || ''}
+              onChange={(e) => setFormData({ ...formData, agenceId: Number(e.target.value) })}
+              disabled={loadingAgencies}
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+                errors.agenceId ? 'border-red-500' : 'border-gray-300'
+              }`}
+            >
+              {loadingAgencies ? (
+                <option value="">Chargement...</option>
+              ) : (
+                <>
+                  <option value="">Sélectionner une agence</option>
+                  {agenciesList.map((agency) => (
+                    <option key={agency.id} value={agency.id}>
+                      {agency.name}
+                    </option>
+                  ))}
+                </>
+              )}
+            </select>
+            {errors.agenceId && (
+              <p className="mt-1 text-xs text-red-500">{errors.agenceId}</p>
             )}
           </div>
 
@@ -310,15 +360,28 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              URL de l'image
+              Image (JPEG/PNG/WebP – max 5 Mo)
             </label>
             <input
-              type="text"
-              value={formData.imageUrl}
-              onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              placeholder="https://exemple.com/image.jpg"
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files && e.target.files[0];
+                if (file) {
+                  setFormData({ ...formData, imageFile: file });
+                  setImagePreview(URL.createObjectURL(file));
+                }
+              }}
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+                errors.imageFile ? 'border-red-500' : 'border-gray-300'
+              }`}
             />
+            {errors.imageFile && (
+              <p className="mt-1 text-xs text-red-500">{errors.imageFile}</p>
+            )}
+            {imagePreview && (
+              <img src={imagePreview} alt="prévisualisation" className="mt-2 h-24 w-24 object-cover rounded" />
+            )}
           </div>
 
           <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 space-y-2">
@@ -346,6 +409,11 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
               {mode === 'edit' && formData.haveChildren && (
                 <p className="mt-1 text-amber-600">
                   ⚠️ Cette catégorie possède des sous-catégories
+                </p>
+              )}
+              {formData.agenceId && (
+                <p className="mt-1">
+                  Agence: <span className="font-medium">{agenciesList.find(a => Number(a.id) === formData.agenceId)?.name || 'N/A'}</span>
                 </p>
               )}
             </div>

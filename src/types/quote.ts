@@ -1,12 +1,23 @@
 // Types pour la gestion des devis (quotes)
-
 // Status du devis
 export type QuoteStatus = 'SENDED' | 'PENDING' | 'ACCEPTED' | 'REJECTED';
-
 // Type pour les produits dans le panier
 export interface CartItem {
   id: number;
   quantity: number;
+  /**
+   * Prix TTC pour l\'ensemble de la ligne du panier (quantité * prix unitaire TTC).
+   * N\'est pas toujours présent – dans ce cas, le prix sera calculé à partir du produit.
+   */
+  priceTtc?: number;
+  /**
+   * Prix HT pour l\'ensemble de la ligne du panier. Optionnel.
+   */
+  priceHt?: number;
+  /**
+   * Identifiant du produit (présent dans la réponse API mais pas toujours utile côté front).
+   */
+  productId?: number;
   product: {
     id: number;
     name: string;
@@ -18,7 +29,6 @@ export interface CartItem {
     promotionPercentage?: number;
   };
 }
-
 // Type pour l'utilisateur du panier
 export interface CartUser {
   id: number;
@@ -32,8 +42,11 @@ export interface Cart {
   id: number;
   user: CartUser;
   cartItems: CartItem[];
+  /**
+   * Prix total TTC du panier renvoyé directement par l\'API. Si présent, il est prioritaire pour le calcul du devis.
+   */
+  totalPrice?: number;
 }
-
 // Type pour le commercial
 export interface Commercial {
   userId: number;
@@ -44,7 +57,6 @@ export interface Commercial {
     email: string;
   };
 }
-
 // Type principal pour un devis
 export interface Quote {
   id: number;
@@ -58,7 +70,6 @@ export interface Quote {
   commercial?: Commercial;
   cart: Cart;
 }
-
 // Type pour la méta-information de pagination
 export interface QuoteMeta {
   total: number;

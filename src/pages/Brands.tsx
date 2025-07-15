@@ -178,10 +178,10 @@ const Brands: React.FC = () => {
         <div className="flex items-center gap-3">
           <BadgeCheck size={36} className="text-emerald-600 bg-emerald-100 rounded-md p-1" />
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Marques</h1>
+            <h1 className="text-3xl font-bold text-gray-800">Founisseurs</h1>
             {meta && (
               <p className="text-sm text-gray-500 mt-1">
-                {meta.total} marque{meta.total > 1 ? 's' : ''} au total
+                {meta.total} Fournisseurs au total
               </p>
             )}
           </div>

@@ -64,8 +64,10 @@ const Products: React.FC = () => {
   });
 
   // Pagination
+  const totalItems = meta?.total ?? filteredProducts.length;
   const totalPages = meta ? meta.lastPage : Math.ceil(filteredProducts.length / itemsPerPage);
-  const paginatedProducts = filteredProducts.slice(
+  // Si l'API gère la pagination (meta présent), les produits reçus correspondent déjà à la page courante
+  const paginatedProducts = meta ? filteredProducts : filteredProducts.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
@@ -176,7 +178,7 @@ const Products: React.FC = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-800">Produits</h1>
             <p className="text-sm text-gray-500 mt-1">
-              {filteredProducts.length} produit{filteredProducts.length > 1 ? 's' : ''} au total
+              {totalItems} produit{totalItems > 1 ? 's' : ''} au total
             </p>
           </div>
         </div>
@@ -494,10 +496,10 @@ const Products: React.FC = () => {
                       <span className="font-medium">{((currentPage - 1) * itemsPerPage) + 1}</span>
                       {' '}à{' '}
                       <span className="font-medium">
-                        {Math.min(currentPage * itemsPerPage, filteredProducts.length)}
+                        {Math.min(currentPage * itemsPerPage, totalItems)}
                       </span>
                       {' '}sur{' '}
-                      <span className="font-medium">{filteredProducts.length}</span>
+                      <span className="font-medium">{totalItems}</span>
                       {' '}résultats
                     </p>
                   </div>

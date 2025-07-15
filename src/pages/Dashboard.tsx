@@ -31,6 +31,21 @@ const Dashboard: React.FC = () => {
   const { meta: clientsMeta, loading: clientsLoading } = useClients({ page: 1, limit: 1 });
   const { meta: agenciesMeta, loading: agenciesLoading } = useAgencies({ page: 1, limit: 1 });
 
+  /**
+   * Calcul des statistiques liées aux catégories :
+   *  - parents : catégories de premier niveau (pas de parentCategoryId)
+   *  - children : sous-catégories (possèdent un parentCategoryId)
+   */
+  const categoryCounts = useMemo(() => {
+    const parents = categories?.filter((c) => !c.parentCategoryId).length || 0;
+    const children = categories?.filter((c) => c.parentCategoryId !== null && c.parentCategoryId !== undefined).length || 0;
+    return {
+      parents,
+      children,
+      total: parents + children
+    };
+  }, [categories]);
+
   // Tableau de statistiques
   const stats = useMemo(() => [
     {
@@ -55,8 +70,8 @@ const Dashboard: React.FC = () => {
     },
     {
       id: 'categories',
-      title: 'Catégories',
-      value: categories?.length ?? 0,
+      title: 'Catégories / Sous-catégories',
+      value: `${categoryCounts.parents} / ${categoryCounts.children}`,
       loading: categoriesLoading,
       icon: Grid3X3,
       link: '/categories',
@@ -106,7 +121,7 @@ const Dashboard: React.FC = () => {
   ], [
     productsMeta, products, productsLoading,
     brandsMeta, brandsLoading,
-    categories, categoriesLoading,
+    categories, categoriesLoading, categoryCounts,
     promotionsMeta, promotionsLoading,
     reviewsMeta, reviewsLoading,
     clientsMeta, clientsLoading,

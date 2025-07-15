@@ -17,6 +17,7 @@ import Commercial from './pages/Commercial';
 import Profile from './pages/Profile';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Agencies from './pages/Agencies';
+import Campaigns from './pages/Campaigns';
 import './App.css';
 
 function App() {
@@ -39,6 +40,7 @@ function App() {
               <Route path="/clients" element={<Clients />} />
               <Route path="/agencies" element={<Agencies />} />
               <Route path="/reviews" element={<Reviews />} />
+              <Route path="/campaigns" element={<Campaigns />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/commercial" element={<Commercial />} />
               <Route path="/profile" element={<Profile />} />

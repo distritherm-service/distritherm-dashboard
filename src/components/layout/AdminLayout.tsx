@@ -14,7 +14,8 @@ import {
   ShoppingBag,
   Building2,
   Settings,
-  LogOut
+  LogOut,
+  Mail
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../../contexts/AuthContext';
@@ -36,10 +37,11 @@ const menuItems: MenuItem[] = [
   
   { id: 'commercial', label: 'Commerciaux', icon: TrendingUp, path: '/commercial' },
   { id: 'categories', label: 'Catégories', icon: Grid3X3, path: '/categories' },
-  { id: 'brands', label: 'Marques', icon: Boxes, path: '/brands' },
+  { id: 'brands', label: 'Fournisseurs', icon: Boxes, path: '/brands' },
   { id: 'products', label: 'Gestion Produit', icon: ShoppingBag, path: '/products' },
   { id: 'promotions', label: 'Promotions', icon: Tag, path: '/promotions' },
   { id: 'reviews', label: 'Revues', icon: Star, path: '/reviews' },
+  { id: 'campaigns', label: 'Campagnes', icon: Mail, path: '/campaigns' },
 ];
 
 const bottomMenuItems: MenuItem[] = [

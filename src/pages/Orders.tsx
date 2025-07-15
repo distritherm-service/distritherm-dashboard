@@ -10,21 +10,33 @@ import {
   Calendar,
   User,
   ShoppingCart,
-  AlertCircle
+  AlertCircle,
+  UserPlus
 } from 'lucide-react';
 import { useQuotes } from '../hooks/useQuotes';
+import { useToast } from '../contexts/ToastContext';
+import AssignCommercialModal from '../components/features/AssignCommercialModal';
 import type { QuoteStatus } from '../types/quote';
+import { useNavigate } from 'react-router-dom';
 
 const Orders: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<QuoteStatus | ''>('');
   
-  const { quotes, loading, error, meta, loadQuotes, calculateQuoteTotal, downloadQuoteFile } = useQuotes({
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [selectedQuoteId, setSelectedQuoteId] = useState<number | null>(null);
+  
+  // Hook de navigation
+  const navigate = useNavigate();
+
+  const { quotes, loading, error, meta, loadQuotes, calculateQuoteTotal, downloadQuoteFile, updateQuote } = useQuotes({
     page: currentPage,
     limit: 10,
     status: statusFilter || undefined
   });
+
+  const { showSuccess, showError } = useToast();
 
   // Fonction pour formater la date
   const formatDate = (dateString: string) => {
@@ -35,6 +47,14 @@ const Orders: React.FC = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  // Fonction pour formater un prix en euro (fr-FR)
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: 'EUR',
+    }).format(price);
   };
 
   // Fonction pour obtenir la couleur du badge selon le statut
@@ -99,13 +119,32 @@ const Orders: React.FC = () => {
     );
   });
 
+  const openAssignModal = (quoteId: number) => {
+    setSelectedQuoteId(quoteId);
+    setIsAssignModalOpen(true);
+  };
+
+  const closeAssignModal = () => {
+    setIsAssignModalOpen(false);
+  };
+
+  const handleAssignCommercial = async (commercialId: number) => {
+    if (!selectedQuoteId) return;
+    const success = await updateQuote(selectedQuoteId, { commercialId });
+    if (success) {
+      showSuccess('Commercial assigné avec succès');
+    } else {
+      showError('Erreur lors de l\'assignation du commercial');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <FileText size={32} className="text-emerald-500" />
-          <h1 className="text-3xl font-bold text-gray-800">Demandes de devis reçues</h1>
+          <h1 className="text-3xl font-bold text-gray-800">Demandes de devis reçus</h1>
         </div>
         <div className="text-sm text-gray-500">
           Total: {meta?.total || 0} devis
@@ -239,7 +278,7 @@ const Orders: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm font-semibold text-gray-900">
-                        {calculateQuoteTotal(quote).toFixed(2)} €
+                        {formatPrice(calculateQuoteTotal(quote))}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -256,7 +295,7 @@ const Orders: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => {/* TODO: Voir les détails */}}
+                          onClick={() => navigate(`/orders/${quote.id}`)}
                           className="text-emerald-600 hover:text-emerald-900"
                           title="Voir les détails"
                         >
@@ -269,6 +308,15 @@ const Orders: React.FC = () => {
                             title="Télécharger le PDF"
                           >
                             <Download size={18} />
+                          </button>
+                        )}
+                        {!quote.commercial && (
+                          <button
+                            onClick={() => openAssignModal(quote.id)}
+                            className="text-purple-600 hover:text-purple-900"
+                            title="Assigner un commercial"
+                          >
+                            <UserPlus size={18} />
                           </button>
                         )}
                       </div>
@@ -360,6 +408,13 @@ const Orders: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Modal d'assignation */}
+      <AssignCommercialModal
+        isOpen={isAssignModalOpen}
+        onClose={closeAssignModal}
+        onAssign={handleAssignCommercial}
+      />
     </div>
   );
 };

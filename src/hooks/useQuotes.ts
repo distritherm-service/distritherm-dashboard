@@ -167,13 +167,31 @@ export const useQuotes = (initialParams?: GetQuotesParams) => {
     }
   }, []);
 
-  // Calculer le total d'un devis
+  /**
+   * Calcule le total TTC d'un devis.
+   * Priorité des sources :
+   *   1. `quote.cart.totalPrice` s'il est fourni par l'API.
+   *   2. Somme des `priceTtc` sur chaque ligne de panier.
+   *   3. Calcul à partir du prix du produit (en tenant compte d'une éventuelle promotion).
+   */
   const calculateQuoteTotal = useCallback((quote: Quote): number => {
+    // 1. Total direct du panier
+    if (typeof quote.cart.totalPrice === 'number') {
+      return quote.cart.totalPrice;
+    }
+
+    // 2. Somme des priceTtc si présents
+    let hasPriceTtc = quote.cart.cartItems.every((item) => typeof item.priceTtc === 'number');
+    if (hasPriceTtc) {
+      return quote.cart.cartItems.reduce((sum, item) => sum + (item.priceTtc || 0), 0);
+    }
+
+    // 3. Fallback : calculer à partir du produit
     return quote.cart.cartItems.reduce((total, item) => {
-      const price = item.product.isInPromotion && item.product.promotionPrice
+      const priceUnit = item.product.isInPromotion && item.product.promotionPrice
         ? item.product.promotionPrice
         : item.product.price;
-      return total + (price * item.quantity);
+      return total + (priceUnit * item.quantity);
     }, 0);
   }, []);
 

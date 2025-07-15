@@ -23,6 +23,7 @@ export interface CreateCategoryInput {
   description?: string;
   parentCategoryId?: number | null;
   agenceId: number;
+  imageFile?: File;
 }
 
 export interface UpdateCategoryInput {
@@ -32,4 +33,5 @@ export interface UpdateCategoryInput {
   parentCategoryId?: number | null;
   alias?: string;
   level?: number;
+  imageFile?: File;
 } 

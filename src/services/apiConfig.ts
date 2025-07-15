@@ -34,7 +34,6 @@ export const apiClient = axios.create({
   baseURL: BASE_API_URL,
   timeout: 10000,
   headers: {
-    'Content-Type': 'application/json',
     'x-platform': 'web',
   },
   withCredentials: true,
@@ -47,6 +46,13 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Si les données ne sont PAS un formulaire, on définit le Content-Type en JSON.
+    // Pour les FormData, Axios s'en chargera et ajoutera la "boundary" nécessaire.
+    if (config.data && !(config.data instanceof FormData)) {
+      config.headers['Content-Type'] = 'application/json';
+    }
+
     return config;
   },
   (error) => Promise.reject(error)

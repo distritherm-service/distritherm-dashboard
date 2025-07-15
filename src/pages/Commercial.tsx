@@ -191,7 +191,7 @@ const Commercial: React.FC = () => {
             <h1 className="text-3xl font-bold text-gray-800">Commerciaux</h1>
             {meta && (
               <p className="text-sm text-gray-500 mt-1">
-                {meta.total} commercial{meta.total > 1 ? 'aux' : ''} au total
+                {meta.total} commercial au total
               </p>
             )}
           </div>
