@@ -67,27 +67,7 @@ const UploadQuote: React.FC = () => {
     });
   };
 
-  const toBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const result = reader.result as string;
-          // Vérifier que le résultat est bien une chaîne base64
-          if (!result || typeof result !== 'string') {
-            reject(new Error('Erreur lors de la lecture du fichier'));
-            return;
-          }
-          // Garder le format complet avec le préfixe pour que le service puisse le nettoyer
-          resolve(result);
-        } catch (error) {
-          reject(new Error('Erreur lors de la conversion du fichier'));
-        }
-      };
-      reader.onerror = () => reject(new Error('Erreur lors de la lecture du fichier'));
-      reader.readAsDataURL(file);
-    });
-  };
+
 
   const handleUpload = async (quoteId: number) => {
     const fileState = files[quoteId];
@@ -115,36 +95,13 @@ const UploadQuote: React.FC = () => {
         });
       }
       
-      try {
-        // Essayer d'abord avec JSON/Base64
-        const base64 = await toBase64(fileState.file);
-        
-        if (import.meta.env.DEV) {
-          console.log('📝 Tentative 1: Upload JSON/Base64');
-        }
-        
-        await commercialQuoteService.uploadQuoteFile(quoteId, base64, endDateToSend);
-        showSuccess('Devis envoyé avec succès.');
-      } catch (jsonError: any) {
-        console.error('❌ Échec upload JSON:', jsonError);
-        
-        // Si l'erreur est 413 ou contient "PDF requis", essayer avec FormData
-        if (jsonError.message?.includes('413') || 
-            jsonError.message?.includes('PDF requis') ||
-            jsonError.message?.includes('volumineux')) {
-          
-          if (import.meta.env.DEV) {
-            console.log('📝 Tentative 2: Upload FormData');
-          }
-          
-          // Essayer avec FormData
-          await commercialQuoteService.uploadQuoteFileFormData(quoteId, fileState.file, endDateToSend);
-          showSuccess('Devis envoyé avec succès.');
-        } else {
-          // Si ce n'est pas une erreur qu'on peut résoudre avec FormData, la propager
-          throw jsonError;
-        }
+      // Upload directement avec FormData (plus efficace et compatible avec le backend)
+      if (import.meta.env.DEV) {
+        console.log('📝 Upload avec FormData');
       }
+      
+      await commercialQuoteService.uploadQuoteFile(quoteId, fileState.file, endDateToSend);
+      showSuccess('Devis envoyé avec succès.');
       
       // Recharger la liste
       loadQuotes({ page: 1, limit: 20 });

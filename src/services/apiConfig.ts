@@ -3,6 +3,7 @@ import { authService } from './authService';
 
 // URL de base de l'API (aucun proxy requis)
 export const BASE_API_URL = 'https://distritherm-backend.onrender.com';
+// export const BASE_API_URL = 'http://localhost:3000';
 
 // Types pour la réponse API
 export interface ApiResponse<T> {
