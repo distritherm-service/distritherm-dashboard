@@ -35,7 +35,7 @@ const menuItems: MenuItem[] = [
   { id: 'clients', label: 'Clients', icon: Users, path: '/clients' },
   { id: 'agencies', label: 'Mes agences', icon: Building2, path: '/agencies' },
   
-  { id: 'commercial', label: 'Commerciaux', icon: TrendingUp, path: '/commercial' },
+  { id: 'commercial', label: 'Commerciaux', icon: TrendingUp, path: '/commercials' },
   { id: 'categories', label: 'Catégories', icon: Grid3X3, path: '/categories' },
   { id: 'brands', label: 'Fournisseurs', icon: Boxes, path: '/brands' },
   { id: 'products', label: 'Gestion Produit', icon: ShoppingBag, path: '/products' },

@@ -11,21 +11,26 @@ import {
   User,
   ShoppingCart,
   AlertCircle,
-  UserPlus
+  UserPlus,
+  UserCog
 } from 'lucide-react';
 import { useQuotes } from '../hooks/useQuotes';
+import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import AssignCommercialModal from '../components/features/AssignCommercialModal';
 import type { QuoteStatus } from '../types/quote';
 import { useNavigate } from 'react-router-dom';
+import { quoteService } from '../services/quoteService';
 
 const Orders: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<QuoteStatus | ''>('');
+  const { user } = useAuth();
   
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [selectedQuoteId, setSelectedQuoteId] = useState<number | null>(null);
+  const [currentCommercialId, setCurrentCommercialId] = useState<number | undefined>(undefined);
   
   // Hook de navigation
   const navigate = useNavigate();
@@ -64,12 +69,11 @@ const Orders: React.FC = () => {
         return 'bg-blue-100 text-blue-800';
       case 'PENDING':
         return 'bg-yellow-100 text-yellow-800';
-      case 'ACCEPTED':
-        return 'bg-green-100 text-green-800';
-      case 'REJECTED':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      case 'PROGRESS':
+        return 'bg-purple-100 text-purple-800';
+      case 'CONSULTED':
+        return 'bg-indigo-100 text-indigo-800';
+      
     }
   };
 
@@ -80,10 +84,10 @@ const Orders: React.FC = () => {
         return 'Envoyé';
       case 'PENDING':
         return 'En attente';
-      case 'ACCEPTED':
-        return 'Accepté';
-      case 'REJECTED':
-        return 'Refusé';
+      case 'PROGRESS':
+        return 'En cours';
+      case 'CONSULTED':
+        return 'Consulté';
       default:
         return status;
     }
@@ -119,8 +123,9 @@ const Orders: React.FC = () => {
     );
   });
 
-  const openAssignModal = (quoteId: number) => {
+  const openAssignModal = (quoteId: number, currentId?: number) => {
     setSelectedQuoteId(quoteId);
+    setCurrentCommercialId(currentId);
     setIsAssignModalOpen(true);
   };
 
@@ -130,9 +135,31 @@ const Orders: React.FC = () => {
 
   const handleAssignCommercial = async (commercialId: number) => {
     if (!selectedQuoteId) return;
+    
+    console.log('🎯 DÉBUT ASSIGNATION');
+    console.log('🎯 Quote ID:', selectedQuoteId);
+    console.log('🎯 Nouveau Commercial ID:', commercialId);
+    console.log('🎯 Commercial actuel:', currentCommercialId);
+    
+    // Trouver le devis actuel
+    const currentQuote = quotes.find(q => q.id === selectedQuoteId);
+    console.log('🎯 Devis actuel AVANT update:', currentQuote);
+    console.log('🎯 Commercial actuel dans le devis:', currentQuote?.commercial);
+     
     const success = await updateQuote(selectedQuoteId, { commercialId });
+    
+    console.log('🎯 Résultat update:', success);
+    
+    // Attendre un peu puis vérifier
+    setTimeout(() => {
+      const updatedQuote = quotes.find(q => q.id === selectedQuoteId);
+      console.log('🎯 Devis APRÈS update (1s):', updatedQuote);
+      console.log('🎯 Commercial après update:', updatedQuote?.commercial);
+    }, 1000);
+     
     if (success) {
       showSuccess('Commercial assigné avec succès');
+      closeAssignModal();
     } else {
       showError('Erreur lors de l\'assignation du commercial');
     }
@@ -141,13 +168,172 @@ const Orders: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* En-tête */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <FileText size={32} className="text-emerald-500" />
-          <h1 className="text-3xl font-bold text-gray-800">Demandes de devis reçus</h1>
-        </div>
-        <div className="text-sm text-gray-500">
-          Total: {meta?.total || 0} devis
+      <div className="bg-white shadow-sm rounded-lg">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-semibold text-gray-800">Demandes de devis reçus</h1>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => loadQuotes({ page: currentPage, limit: 10, status: statusFilter || undefined })}
+                className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded"
+              >
+                Rafraîchir
+              </button>
+                {import.meta.env.DEV && (
+                  <>
+                    <button
+                      onClick={async () => {
+                        // Tester avec un devis qui a déjà un commercial
+                        const devisAvecCommercial = quotes.find(q => q.commercialId === 4);
+                        if (devisAvecCommercial) {
+                          console.log('🧪 Test: Changer commercial du devis', devisAvecCommercial.id);
+                          console.log('🧪 Commercial actuel:', devisAvecCommercial.commercialId);
+                          // Essayer d'assigner un commercial différent (ex: 5 ou 6)
+                          const newCommercialId = devisAvecCommercial.commercialId === 4 ? 5 : 4;
+                          console.log('🧪 Nouveau commercial:', newCommercialId);
+                          const success = await updateQuote(devisAvecCommercial.id, { commercialId: newCommercialId });
+                          if (success) {
+                            showSuccess(`Commercial changé de ${devisAvecCommercial.commercialId} à ${newCommercialId}`);
+                          }
+                        }
+                      }}
+                      className="px-3 py-1 text-sm bg-purple-100 hover:bg-purple-200 rounded"
+                    >
+                      Test Changement
+                    </button>
+                    <button
+                      onClick={async () => {
+                        // Test direct avec fetch
+                        const testId = 9; // ID du devis à tester
+                        const testCommercialId = 5; // Nouveau commercial
+                        console.log('🔬 TEST DIRECT FETCH');
+                        try {
+                          const token = localStorage.getItem('accessToken');
+                          const response = await fetch(`https://distritherm-backend.onrender.com/devis/${testId}`, {
+                            method: 'PUT',
+                            headers: {
+                              'Authorization': `Bearer ${token}`,
+                              'Content-Type': 'application/json',
+                              'x-platform': 'web'  // Header requis par l'API
+                            },
+                            body: JSON.stringify({ commercialId: testCommercialId })
+                          });
+                          const data = await response.json();
+                          console.log('🔬 Réponse:', data);
+                          console.log('🔬 Status:', response.status);
+                          console.log('🔬 Commercial dans réponse:', data.devis?.commercialId);
+                          if (response.ok) {
+                            showSuccess('Test direct réussi - Vérifiez les logs');
+                            // Recharger la liste
+                            setTimeout(() => {
+                              loadQuotes({ page: currentPage, limit: 10 });
+                            }, 500);
+                          } else {
+                            showError(`Erreur API: ${data.message || 'Erreur inconnue'}`);
+                          }
+                        } catch (error) {
+                          console.error('🔬 Erreur test direct:', error);
+                          showError('Erreur lors du test direct');
+                        }
+                      }}
+                      className="px-3 py-1 text-sm bg-red-100 hover:bg-red-200 rounded"
+                    >
+                      Test Direct API
+                    </button>
+                    <button
+                      onClick={async () => {
+                        console.log('📋 Liste des commerciaux disponibles:');
+                        try {
+                          const token = localStorage.getItem('accessToken');
+                          const response = await fetch('https://distritherm-backend.onrender.com/users/by-role?role=COMMERCIAL', {
+                            headers: {
+                              'Authorization': `Bearer ${token}`,
+                              'x-platform': 'web'
+                            }
+                          });
+                          const data = await response.json();
+                          console.log('📋 Commerciaux:', data);
+                          if (data.users) {
+                            data.users.forEach((u: any) => {
+                              console.log(`📋 - ID: ${u.id}, Nom: ${u.firstName} ${u.lastName}`);
+                            });
+                          }
+                        } catch (error) {
+                          console.error('📋 Erreur:', error);
+                        }
+                      }}
+                      className="px-3 py-1 text-sm bg-green-100 hover:bg-green-200 rounded"
+                    >
+                      Liste Commerciaux
+                    </button>
+                    <button
+                      onClick={async () => {
+                        console.log('🧪 Test avec différents IDs');
+                        const testDevisId = 9;
+                        
+                        // Essayer avec l'ID 4 (qui correspond à Pierre Dupont userId: 4)
+                        console.log('🧪 Test 1: Assigner avec commercialId = 4 (userId de Pierre)');
+                        try {
+                          const result1 = await updateQuote(testDevisId, { commercialId: 4 });
+                          console.log('🧪 Résultat test 1:', result1);
+                        } catch (e) {
+                          console.error('🧪 Erreur test 1:', e);
+                        }
+                        
+                        // Essayer avec un autre ID pour voir
+                        console.log('🧪 Test 2: Assigner avec commercialId = 5 (autre commercial?)');
+                        try {
+                          const result2 = await updateQuote(testDevisId, { commercialId: 5 });
+                          console.log('🧪 Résultat test 2:', result2);
+                        } catch (e) {
+                          console.error('🧪 Erreur test 2:', e);
+                        }
+                        
+                        // Recharger pour voir le résultat
+                        setTimeout(() => {
+                          loadQuotes({ page: currentPage, limit: 10 });
+                        }, 1000);
+                      }}
+                      className="px-3 py-1 text-sm bg-yellow-100 hover:bg-yellow-200 rounded"
+                    >
+                      Test IDs
+                    </button>
+                    <button
+                      onClick={async () => {
+                        console.log('🔧 Test update complet');
+                        const testDevisId = 9;
+                        const newCommercialId = 5;
+                        
+                        try {
+                          const result = await quoteService.updateQuoteComplete(testDevisId, { 
+                            commercialId: newCommercialId 
+                          });
+                          console.log('🔧 Résultat:', result);
+                          
+                          if (result.devis?.commercialId === newCommercialId) {
+                            showSuccess('Update complet réussi!');
+                          } else {
+                            showError(`Commercial non mis à jour. Reste à ${result.devis?.commercialId}`);
+                          }
+                          
+                          // Recharger
+                          setTimeout(() => {
+                            loadQuotes({ page: currentPage, limit: 10 });
+                          }, 500);
+                        } catch (error) {
+                          console.error('🔧 Erreur:', error);
+                          showError('Erreur lors de l\'update complet');
+                        }
+                      }}
+                      className="px-3 py-1 text-sm bg-indigo-100 hover:bg-indigo-200 rounded"
+                    >
+                      Update Complet
+                    </button>
+                  </>
+                )}
+              <span className="text-sm text-gray-500">Total: {meta?.total || 0} devis</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -310,15 +496,13 @@ const Orders: React.FC = () => {
                             <Download size={18} />
                           </button>
                         )}
-                        {!quote.commercial && (
-                          <button
-                            onClick={() => openAssignModal(quote.id)}
-                            className="text-purple-600 hover:text-purple-900"
-                            title="Assigner un commercial"
-                          >
-                            <UserPlus size={18} />
-                          </button>
-                        )}
+                        <button
+                          onClick={() => openAssignModal(quote.id, quote.commercialId)}
+                          className="text-purple-600 hover:text-purple-900"
+                          title={quote.commercial ? 'Modifier le commercial' : 'Assigner un commercial'}
+                        >
+                          {quote.commercial ? <UserCog size={18} /> : <UserPlus size={18} />}
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -414,6 +598,7 @@ const Orders: React.FC = () => {
         isOpen={isAssignModalOpen}
         onClose={closeAssignModal}
         onAssign={handleAssignCommercial}
+        currentCommercialId={currentCommercialId}
       />
     </div>
   );

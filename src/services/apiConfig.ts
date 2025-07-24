@@ -37,6 +37,8 @@ export const apiClient = axios.create({
     'x-platform': 'web',
   },
   withCredentials: true,
+  maxContentLength: 50 * 1024 * 1024, // 50 MB
+  maxBodyLength: 50 * 1024 * 1024,    // 50 MB
 });
 
 // Ajout d'un intercepteur de requête pour injecter le token d'accès
@@ -51,6 +53,16 @@ apiClient.interceptors.request.use(
     // Pour les FormData, Axios s'en chargera et ajoutera la "boundary" nécessaire.
     if (config.data && !(config.data instanceof FormData)) {
       config.headers['Content-Type'] = 'application/json';
+    }
+
+    // DEBUG temporaire pour les PUT
+    if (config.method === 'put') {
+      console.log('🔥 INTERCEPTOR PUT Request:', {
+        url: config.url,
+        method: config.method,
+        data: config.data,
+        headers: config.headers
+      });
     }
 
     return config;

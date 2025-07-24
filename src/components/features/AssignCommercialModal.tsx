@@ -21,6 +21,16 @@ const AssignCommercialModal: React.FC<AssignCommercialModalProps> = ({
   const [isAnimating, setIsAnimating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Debug : Logger les commerciaux chargés
+  useEffect(() => {
+    if (commercials.length > 0 && import.meta.env.DEV) {
+      console.log('🔍 Commerciaux dans le modal:', commercials);
+      commercials.forEach(c => {
+        console.log(`🔍 Commercial: ID=${c.id}, Nom=${c.firstName} ${c.lastName}`);
+      });
+    }
+  }, [commercials]);
+
   // Animation d'ouverture
   useEffect(() => {
     if (isOpen) {
@@ -106,7 +116,7 @@ const AssignCommercialModal: React.FC<AssignCommercialModalProps> = ({
                 <option value="">-- Choisir --</option>
                 {commercials.map((c: User) => (
                   <option key={c.id} value={c.id}>
-                    {c.firstName} {c.lastName} - {c.email}
+                    {c.firstName} {c.lastName} - {c.email} (ID: {c.id})
                   </option>
                 ))}
               </select>

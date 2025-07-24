@@ -172,7 +172,7 @@ const Categories: React.FC = () => {
     const totalDescendants = countAllDescendants(category.id);
     if (totalDescendants > 0) {
       warnings.push(`⚠️ ATTENTION : Cette catégorie contient ${totalDescendants} sous-catégorie${totalDescendants > 1 ? 's' : ''}`);
-      warnings.push('L\'API ne permet pas de supprimer une catégorie qui contient des sous-catégories');
+      warnings.push('Toutes les sous-catégories seront supprimées en cascade');
       
       // Afficher toutes les sous-catégories si moins de 10
       if (totalDescendants <= 10) {
@@ -183,7 +183,7 @@ const Categories: React.FC = () => {
         warnings.push(`Vous devez d\'abord supprimer toutes les ${totalDescendants} sous-catégories`);
       }
       
-      return warnings; // Retourner immédiatement car la suppression sera impossible
+      // On continue sans retour anticipé : la suppression sera autorisée mais on avertit l’utilisateur
     }
     
     // Vérifier le niveau de la catégorie
@@ -376,24 +376,13 @@ const Categories: React.FC = () => {
               >
                 <Edit2 size={16} />
               </button>
-              {hasChildren ? (
-                <button
-                  onClick={() => handleDeleteClick(category)}
-                  className="text-gray-400 hover:text-gray-500 p-2 rounded hover:bg-gray-50 transition-colors cursor-not-allowed"
-                  title="Cette catégorie contient des sous-catégories et ne peut pas être supprimée"
-                  disabled
-                >
-                  <Trash2 size={16} />
-                </button>
-              ) : (
-                <button
-                  onClick={() => handleDeleteClick(category)}
-                  className="text-red-600 hover:text-red-900 p-2 rounded hover:bg-red-50 transition-colors cursor-pointer"
-                  title="Supprimer"
-                >
-                  <Trash2 size={16} />
-                </button>
-              )}
+              <button
+                onClick={() => handleDeleteClick(category)}
+                className={`p-2 rounded transition-colors cursor-pointer ${hasChildren ? 'text-amber-600 hover:text-amber-800 hover:bg-amber-50' : 'text-red-600 hover:text-red-900 hover:bg-red-50'}`}
+                title={hasChildren ? 'Supprimer la catégorie et toutes ses sous-catégories' : 'Supprimer'}
+              >
+                <Trash2 size={16} />
+              </button>
             </div>
           </div>
         </div>
@@ -704,46 +693,26 @@ const Categories: React.FC = () => {
       />
 
       {/* Modal de confirmation de suppression */}
-      {categoryToDelete && categoryHasChildren(categoryToDelete.id) ? (
-        // Modal spécial pour les catégories avec enfants
-        <ConfirmModal
-          isOpen={isDeleteModalOpen}
-          onClose={() => {
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          if (!isDeleting) {
             setIsDeleteModalOpen(false);
             setCategoryToDelete(null);
-          }}
-          onConfirm={() => {
-            setIsDeleteModalOpen(false);
-            setCategoryToDelete(null);
-          }}
-          title="Suppression impossible"
-          message={`La catégorie "${categoryToDelete?.name}" ne peut pas être supprimée car elle contient des sous-catégories.`}
-          confirmText="J'ai compris"
-          cancelText=""
-          type="warning"
-          additionalInfo={getDeleteWarnings(categoryToDelete)}
-          isLoading={false}
-        />
-      ) : (
-        // Modal normal de suppression
-        <ConfirmModal
-          isOpen={isDeleteModalOpen}
-          onClose={() => {
-            if (!isDeleting) {
-              setIsDeleteModalOpen(false);
-              setCategoryToDelete(null);
-            }
-          }}
-          onConfirm={handleDelete}
-          title="Supprimer la catégorie"
-          message={`Êtes-vous sûr de vouloir supprimer la catégorie "${categoryToDelete?.name}" ?`}
-          confirmText="Supprimer"
-          cancelText="Annuler"
-          type="danger"
-          additionalInfo={getDeleteWarnings(categoryToDelete)}
-          isLoading={isDeleting}
-        />
-      )}
+          }
+        }}
+        onConfirm={handleDelete}
+        title={categoryToDelete && categoryHasChildren(categoryToDelete.id) ? 'Supprimer la catégorie et ses sous-catégories' : 'Supprimer la catégorie'}
+        message={categoryToDelete ? (categoryHasChildren(categoryToDelete.id)
+          ? `La catégorie "${categoryToDelete.name}" et toutes ses sous-catégories seront définitivement supprimées. Cette action est irréversible. Voulez-vous continuer ?`
+          : `Êtes-vous sûr de vouloir supprimer la catégorie "${categoryToDelete.name}" ?`)
+          : ''}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        type={categoryToDelete && categoryHasChildren(categoryToDelete.id) ? 'warning' : 'danger'}
+        additionalInfo={getDeleteWarnings(categoryToDelete)}
+        isLoading={isDeleting}
+      />
     </div>
   );
 };

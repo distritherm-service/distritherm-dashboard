@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import AdminLayout from './components/layout/AdminLayout';
+import CommercialLayout from './commercial/layout/CommercialLayout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
@@ -14,7 +15,10 @@ import Clients from './pages/Clients';
 import Reviews from './pages/Reviews';
 import Settings from './pages/Settings';
 import Commercial from './pages/Commercial';
+import CommercialOrders from './commercial/pages/Orders';
+import UploadQuote from './commercial/pages/UploadQuote';
 import Profile from './pages/Profile';
+import CommercialProfile from './commercial/pages/Profile';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Agencies from './pages/Agencies';
 import Campaigns from './pages/Campaigns';
@@ -25,10 +29,23 @@ function App() {
     <AuthProvider>
       <ToastProvider>
         <Routes>
+          {/* Auth */}
           <Route path="/login" element={<Login />} />
-          <Route element={<ProtectedRoute />}>
+
+          {/* Espace COMMERCIAL */}
+          <Route path="/commercial/*" element={<ProtectedRoute allowedRoles={['COMMERCIAL']} />}>
+            <Route element={<CommercialLayout />}>
+              <Route path="orders" element={<CommercialOrders />} />
+              <Route path="orders/:id" element={<OrderDetails />} />
+              <Route path="upload" element={<UploadQuote />} />
+              <Route path="profile" element={<CommercialProfile />} />
+            </Route>
+          </Route>
+
+          {/* Espace ADMIN */}
+          <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
             <Route element={<AdminLayout />}>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/products" element={<Products />} />
               <Route path="/categories" element={<Categories />} />
@@ -42,11 +59,12 @@ function App() {
               <Route path="/reviews" element={<Reviews />} />
               <Route path="/campaigns" element={<Campaigns />} />
               <Route path="/settings" element={<Settings />} />
-              <Route path="/commercial" element={<Commercial />} />
+              <Route path="/commercials" element={<Commercial />} />
               <Route path="/profile" element={<Profile />} />
             </Route>
           </Route>
-          {/* Route catch-all pour rediriger vers login */}
+
+          {/* Fallback */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </ToastProvider>

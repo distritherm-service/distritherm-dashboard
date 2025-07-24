@@ -7,9 +7,11 @@ import clsx from 'clsx';
 
 interface HeaderProps {
   onToggleMobileMenu?: () => void;
+  /** Chemin vers la page "Mon profil" (par défaut '/profile') */
+  profilePath?: string;
 }
 
-const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
+const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu, profilePath = '/profile' }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -205,7 +207,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
                     <div className="py-2">
                       <button
                         onClick={() => {
-                          navigate('/profile');
+                          navigate(profilePath);
                           setShowProfileMenu(false);
                         }}
                         className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-all duration-150"

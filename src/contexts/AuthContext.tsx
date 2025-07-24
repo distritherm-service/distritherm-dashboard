@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authService } from '../services/authService';
+import { userService } from '../services/userService';
 import type { User } from '../types/user';
 
 type AppUser = User & { name: string };
@@ -24,16 +25,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Vérifier si l'utilisateur est déjà connecté au chargement
   useEffect(() => {
     const initAuth = async () => {
-      const storedUser = localStorage.getItem('user');
+      const accessToken = localStorage.getItem('accessToken');
 
-      if (storedUser) {
+      if (accessToken) {
         try {
-          const userData = JSON.parse(storedUser) as AppUser;
-          setUser(userData);
+          const { user: profile } = await userService.getCurrentUser();
+          const appUser: AppUser = { ...profile, name: `${profile.firstName} ${profile.lastName}` };
+          setUser(appUser);
           setIsAuthenticated(true);
+          localStorage.setItem('user', JSON.stringify(appUser));
         } catch (error) {
-          console.error('Erreur lors de la lecture des données utilisateur:', error);
+          console.error('Erreur de récupération du profil:', error);
           logout();
+        }
+      } else {
+        // Fallback pour le mode dev si l'utilisateur est en localStorage sans token
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          try {
+            const userData = JSON.parse(storedUser) as AppUser;
+            setUser(userData);
+            setIsAuthenticated(true);
+          } catch (error) {
+            console.error('Erreur lors de la lecture des données utilisateur:', error);
+            logout();
+          }
         }
       }
       setLoading(false);
@@ -45,17 +61,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const response = await authService.login({ email, password });
-      const { accessToken, refreshToken, user: userData } = response;
-      const appUser: AppUser = { ...userData, name: `${userData.firstName} ${userData.lastName}` };
-      
-      // Stocker les tokens et l'utilisateur
+      const { accessToken, refreshToken } = response;
+
+      // Stocker les tokens
       localStorage.setItem('accessToken', accessToken);
-      // Stocker le refreshToken seulement s'il est fourni (sinon il est dans un cookie httpOnly)
       if (refreshToken) {
         localStorage.setItem('refreshToken', refreshToken);
       }
+
+      // Récupérer ensuite le profil complet (rôle compris)
+      const { user: profile } = await userService.getCurrentUser();
+      const appUser: AppUser = { ...profile, name: `${profile.firstName} ${profile.lastName}` };
+
       localStorage.setItem('user', JSON.stringify(appUser));
-      
       setUser(appUser);
       setIsAuthenticated(true);
       return true;

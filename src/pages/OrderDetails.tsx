@@ -31,6 +31,10 @@ const getStatusBadgeClass = (status: QuoteStatus) => {
       return 'bg-blue-100 text-blue-800';
     case 'PENDING':
       return 'bg-yellow-100 text-yellow-800';
+    case 'PROGRESS':
+      return 'bg-purple-100 text-purple-800';
+    case 'CONSULTED':
+      return 'bg-indigo-100 text-indigo-800';
     case 'ACCEPTED':
       return 'bg-green-100 text-green-800';
     case 'REJECTED':
@@ -46,6 +50,10 @@ const getStatusLabel = (status: QuoteStatus) => {
       return 'Envoyé';
     case 'PENDING':
       return 'En attente';
+    case 'PROGRESS':
+      return 'En cours';
+    case 'CONSULTED':
+      return 'Consulté';
     case 'ACCEPTED':
       return 'Accepté';
     case 'REJECTED':
@@ -173,6 +181,15 @@ const OrderDetails: React.FC = () => {
           <p className="text-sm text-gray-700 font-medium">
             {quote.cart.user.firstName} {quote.cart.user.lastName}
           </p>
+          {quote.cart.user.companyName && (
+            <p className="text-sm text-gray-500">Entreprise : {quote.cart.user.companyName}</p>
+          )}
+          {quote.cart.user.siretNumber && (
+            <p className="text-sm text-gray-500">SIRET : {quote.cart.user.siretNumber}</p>
+          )}
+          {quote.cart.user.phoneNumber && (
+            <p className="text-sm text-gray-500">Téléphone : {quote.cart.user.phoneNumber}</p>
+          )}
           <p className="text-sm text-gray-500">{quote.cart.user.email}</p>
         </div>
 
@@ -207,14 +224,22 @@ const OrderDetails: React.FC = () => {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {quote.cart.cartItems.map((item) => {
-              const priceUnit = item.product.isInPromotion && item.product.promotionPrice
-                ? item.product.promotionPrice
-                : item.product.price;
-              const lineTotal = priceUnit * item.quantity;
+              // Déterminer le prix unitaire : priorité à priceTtc s'il existe
+              const unitPrice = typeof item.priceTtc === 'number'
+                ? item.priceTtc / item.quantity
+                : (item.product.isInPromotion && item.product.promotionPrice
+                    ? item.product.promotionPrice
+                    : item.product.price);
+
+              // Calcul du total de la ligne
+              const lineTotal = typeof item.priceTtc === 'number'
+                ? item.priceTtc
+                : unitPrice * item.quantity;
+
               return (
                 <tr key={item.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.product.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatPrice(priceUnit)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatPrice(unitPrice)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.quantity}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{formatPrice(lineTotal)}</td>
                 </tr>

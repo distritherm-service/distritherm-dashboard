@@ -1,6 +1,6 @@
 // Types pour la gestion des devis (quotes)
 // Status du devis
-export type QuoteStatus = 'SENDED' | 'PENDING' | 'ACCEPTED' | 'REJECTED';
+export type QuoteStatus = 'SENDED' | 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'PROGRESS' | 'CONSULTED';
 // Type pour les produits dans le panier
 export interface CartItem {
   id: number;
@@ -35,6 +35,9 @@ export interface CartUser {
   firstName: string;
   lastName: string;
   email: string;
+  phoneNumber?: string;
+  companyName?: string;
+  siretNumber?: string;
 }
 
 // Type pour le panier

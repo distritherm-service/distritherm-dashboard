@@ -267,6 +267,20 @@ export const userService = {
   },
 
   /**
+   * Obtenir le profil de l'utilisateur connecté
+   * GET /users/me
+   */
+  async getCurrentUser(): Promise<UserResponse> {
+    try {
+      const response = await apiClient.get<UserResponse>('/users/me');
+      return response.data;
+    } catch (error) {
+      const message = handleApiError(error as AxiosError<ApiError>);
+      throw new Error(message);
+    }
+  },
+
+  /**
    * Envoyer un email de vérification
    * POST /users/send-verification
    */  

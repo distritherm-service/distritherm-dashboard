@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,14 +15,17 @@ const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const from = location.state?.from?.pathname || '/dashboard';
+  const fromState = location.state?.from?.pathname;
+  const role = user?.role?.toUpperCase();
+  const defaultAfterLogin = role === 'COMMERCIAL' ? '/commercial/orders' : '/dashboard';
 
   // Rediriger si déjà connecté
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate(from, { replace: true });
+    if (isAuthenticated && user) {
+      const target = fromState || defaultAfterLogin;
+      navigate(target, { replace: true });
     }
-  }, [isAuthenticated, navigate, from]);
+  }, [isAuthenticated, user, navigate, fromState, defaultAfterLogin]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,9 +34,7 @@ const Login: React.FC = () => {
 
     try {
       const success = await login(email, password);
-      if (success) {
-        navigate(from, { replace: true });
-      } else {
+      if (!success) {
         setError('Email ou mot de passe incorrect');
         // Animation de secousse en cas d'erreur
         const form = document.getElementById('login-form');

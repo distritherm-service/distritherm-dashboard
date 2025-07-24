@@ -1,44 +1,50 @@
 import { AxiosError } from 'axios';
 import { apiClient, handleApiError, type ApiError } from './apiConfig';
-import type { 
+import axios from 'axios';
+import type {
   QuotesResponse,
   QuoteResponse,
   GetQuotesParams,
-  CreateQuoteInput,
-  UpdateQuoteInput
 } from '../types/quote';
+import type { CreateQuoteInput, UpdateQuoteInput } from '../types/quote';
 
-// Service pour la gestion des devis via l'API REST
+/**
+ * Service centralisant toutes les requêtes liées aux devis (quotes).
+ * – Admin : endpoints génériques (/devis, /devis/:id, …)
+ * – Commercial : endpoints filtrés (/devis/by-commercial/:id)
+ */
 export const quoteService = {
   /**
-   * Récupérer la liste paginée des devis
-   * GET /devis
+   * Récupérer la liste paginée des devis.
+   * – Admin : GET /devis
+   * – Commercial : GET /devis/by-commercial/:commercialId
    */
   async getQuotes(params?: GetQuotesParams): Promise<QuotesResponse> {
     try {
       const queryParams = new URLSearchParams();
-      
-      if (params?.page) {
-        queryParams.append('page', params.page.toString());
-      }
-      if (params?.limit) {
-        queryParams.append('limit', params.limit.toString());
-      }
-      if (params?.status) {
-        queryParams.append('status', params.status);
-      }
+      if (params?.page) queryParams.append('page', params.page.toString());
+      if (params?.limit) queryParams.append('limit', params.limit.toString());
+      if (params?.status) queryParams.append('status', params.status);
+
+      // Déterminer l'endpoint selon la présence de commercialId
+      let endpoint = '/devis';
       if (params?.commercialId) {
-        queryParams.append('commercialId', params.commercialId.toString());
+        endpoint = `/devis/by-commercial/${params.commercialId}`;
       }
 
-      const endpoint = queryParams.toString() ? `/devis?${queryParams.toString()}` : '/devis';
-      const response = await apiClient.get<QuotesResponse>(endpoint);
-      
-      // Debug en développement
+      const finalEndpoint = queryParams.toString()
+        ? `${endpoint}?${queryParams.toString()}`
+        : endpoint;
+
+      const response = await apiClient.get<QuotesResponse>(finalEndpoint);
+
       if (import.meta.env.DEV) {
-        console.log('📋 Devis récupérés:', response.data);
+        console.log('📋 Devis récupérés - Response complète:', response);
+        console.log('📋 Devis récupérés - response.data:', response.data);
+        console.log('📋 Premier devis:', response.data.devis?.[0]);
+        console.log('📋 Commercial du premier devis:', response.data.devis?.[0]?.commercial);
       }
-      
+
       return response.data;
     } catch (error) {
       const message = handleApiError(error as AxiosError<ApiError>);
@@ -47,18 +53,12 @@ export const quoteService = {
   },
 
   /**
-   * Récupérer un devis par son ID
-   * GET /devis/{id}
+   * Récupérer le détail d'un devis
+   * GET /devis/:id
    */
   async getQuoteById(id: number): Promise<QuoteResponse> {
     try {
       const response = await apiClient.get<QuoteResponse>(`/devis/${id}`);
-      
-      // Debug en développement
-      if (import.meta.env.DEV) {
-        console.log(`📋 Devis ${id} récupéré:`, response.data);
-      }
-      
       return response.data;
     } catch (error) {
       const message = handleApiError(error as AxiosError<ApiError>);
@@ -67,37 +67,23 @@ export const quoteService = {
   },
 
   /**
-   * Créer un nouveau devis
+   * Créer un devis
    * POST /devis
    */
   async createQuote(input: CreateQuoteInput): Promise<QuoteResponse> {
     try {
-      // Debug: Logger la tentative de création
-      if (import.meta.env.DEV) {
-        console.log('📝 Création d\'un nouveau devis:', input);
-      }
+      // Nettoyer l'input pour retirer les champs vides / undefined
+      const cleanedInput = Object.entries(input).reduce((acc, [key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          (acc as any)[key] = value;
+        }
+        return acc;
+      }, {} as CreateQuoteInput);
 
-      const response = await apiClient.post<QuoteResponse>('/devis', input);
-      
-      // Debug: Logger le succès
-      if (import.meta.env.DEV) {
-        console.log('✅ Devis créé avec succès:', response.data);
-      }
-      
+      const response = await apiClient.post<QuoteResponse>('/devis', cleanedInput);
       return response.data;
     } catch (error) {
-      const axiosError = error as AxiosError<ApiError>;
-      
-      // Debug: Logger l'erreur complète en développement
-      if (import.meta.env.DEV && axiosError.response) {
-        console.error('🔴 Erreur de création de devis:', {
-          status: axiosError.response.status,
-          data: axiosError.response.data,
-          headers: axiosError.response.headers
-        });
-      }
-      
-      const message = handleApiError(axiosError);
+      const message = handleApiError(error as AxiosError<ApiError>);
       throw new Error(message);
     }
   },
@@ -105,52 +91,56 @@ export const quoteService = {
   /**
    * Mettre à jour un devis
    * PUT /devis/{id}
-   * 
-   * @param id - ID du devis à modifier
-   * @param input - Données à mettre à jour
-   * @returns Devis mis à jour
+   * Permet notamment d'assigner un commercial (commercialId) ou de changer le statut / fichier / date de validité.
    */
   async updateQuote(id: number, input: UpdateQuoteInput): Promise<QuoteResponse> {
     try {
-      // Debug: Logger la tentative de modification
-      if (import.meta.env.DEV) {
-        console.log(`✏️ Modification du devis ${id}:`, input);
+      console.log('🚀 UPDATE QUOTE - Début');
+      console.log('🚀 ID:', id);
+      console.log('🚀 Input brut:', input);
+      console.log('🚀 Type commercialId:', typeof input.commercialId);
+      
+      // S'assurer que commercialId est un nombre si présent
+      if (input.commercialId !== undefined) {
+        input.commercialId = Number(input.commercialId);
+        console.log('🚀 commercialId converti en nombre:', input.commercialId);
       }
-
-      // Nettoyer les champs vides
+      
+      // Nettoyer l'input pour retirer les champs vides / undefined
       const cleanedInput = Object.entries(input).reduce((acc, [key, value]) => {
-        if (value !== undefined && value !== '' && value !== null) {
-          acc[key as keyof UpdateQuoteInput] = value;
+        if (value !== undefined && value !== null && value !== '') {
+          (acc as any)[key] = value;
         }
         return acc;
       }, {} as UpdateQuoteInput);
 
+      console.log('🚀 Input nettoyé:', cleanedInput);
+      console.log('🚀 JSON.stringify de l\'input:', JSON.stringify(cleanedInput));
+      console.log('🚀 URL:', `/devis/${id}`);
+
+      // PUT /devis/{id}
       const response = await apiClient.put<QuoteResponse>(`/devis/${id}`, cleanedInput);
       
-      // Debug: Logger le succès
-      if (import.meta.env.DEV) {
-        console.log('✅ Devis modifié avec succès:', response.data);
+      console.log('🚀 Réponse API complète:', response);
+      console.log('🚀 Réponse data:', response.data);
+      console.log('🚀 Devis dans la réponse:', response.data.devis);
+      console.log('🚀 Commercial dans la réponse:', response.data.devis?.commercialId);
+      
+      // Vérifier si la mise à jour a réellement eu lieu
+      if (input.commercialId && response.data.devis?.commercialId !== input.commercialId) {
+        console.warn('⚠️ ATTENTION: Le commercialId n\'a pas été mis à jour!');
+        console.warn('⚠️ Demandé:', input.commercialId, 'Reçu:', response.data.devis?.commercialId);
       }
       
       return response.data;
     } catch (error) {
-      const axiosError = error as AxiosError<ApiError>;
-      
-      // Debug: Logger l'erreur complète en développement
-      if (import.meta.env.DEV && axiosError.response) {
-        console.error('🔴 Erreur de modification de devis:', {
-          status: axiosError.response.status,
-          data: axiosError.response.data,
-          headers: axiosError.response.headers
-        });
+      console.error('🚀 ERREUR UPDATE:', error);
+      if (axios.isAxiosError(error)) {
+        console.error('🚀 Response:', error.response?.data);
+        console.error('🚀 Status:', error.response?.status);
+        console.error('🚀 Headers:', error.response?.headers);
       }
-      
-      // Gestion des erreurs spécifiques
-      if (axiosError.response?.status === 404) {
-        throw new Error(`Le devis avec l'ID ${id} n'existe pas`);
-      }
-      
-      const message = handleApiError(axiosError);
+      const message = handleApiError(error as AxiosError<ApiError>);
       throw new Error(message);
     }
   },
@@ -158,62 +148,71 @@ export const quoteService = {
   /**
    * Supprimer un devis
    * DELETE /devis/{id}
-   * 
-   * @param id - ID du devis à supprimer
-   * @returns Message de confirmation
    */
   async deleteQuote(id: number): Promise<{ message: string }> {
     try {
-      // Debug: Logger la tentative de suppression
-      if (import.meta.env.DEV) {
-        console.log(`🗑️ Suppression du devis ${id}`);
-      }
-
       const response = await apiClient.delete<{ message: string }>(`/devis/${id}`);
-      
-      // Debug: Logger le succès
-      if (import.meta.env.DEV) {
-        console.log('✅ Devis supprimé avec succès:', response.data);
-      }
-      
       return response.data;
     } catch (error) {
-      const axiosError = error as AxiosError<ApiError>;
-      
-      // Debug: Logger l'erreur complète en développement
-      if (import.meta.env.DEV && axiosError.response) {
-        console.error('🔴 Erreur de suppression de devis:', {
-          status: axiosError.response.status,
-          data: axiosError.response.data,
-          headers: axiosError.response.headers
-        });
-      }
-      
-      // Gestion des erreurs spécifiques
-      if (axiosError.response?.status === 404) {
-        throw new Error(`Le devis avec l'ID ${id} n'existe pas`);
-      }
-      
-      const message = handleApiError(axiosError);
+      const message = handleApiError(error as AxiosError<ApiError>);
       throw new Error(message);
     }
   },
 
   /**
-   * Télécharger le fichier d'un devis
-   * @param fileUrl - URL du fichier à télécharger
-   * @returns Blob du fichier
+   * Télécharger le fichier PDF d'un devis (fileUrl complet retourné par l'API)
    */
   async downloadQuoteFile(fileUrl: string): Promise<Blob> {
     try {
-      const response = await apiClient.get(fileUrl, {
-        responseType: 'blob'
-      });
+      const response = await apiClient.get(fileUrl, { responseType: 'blob' });
+      return response.data as Blob;
+    } catch (error) {
+      const message = handleApiError(error as AxiosError<ApiError>);
+      throw new Error(message);
+    }
+  },
+
+  /**
+   * Test : Mettre à jour un devis avec tous les champs
+   * Cette méthode récupère d'abord le devis puis renvoie tous les champs
+   */
+  async updateQuoteComplete(id: number, input: UpdateQuoteInput): Promise<QuoteResponse> {
+    try {
+      console.log('🔧 UPDATE COMPLET - Récupération du devis actuel...');
+      
+      // 1. Récupérer le devis actuel
+      const currentQuoteResponse = await this.getQuoteById(id);
+      const currentQuote = currentQuoteResponse.devis;
+      
+      console.log('🔧 Devis actuel:', currentQuote);
+      
+      // 2. Créer un objet avec tous les champs
+      const completeUpdate = {
+        status: input.status || currentQuote.status,
+        commercialId: input.commercialId !== undefined ? Number(input.commercialId) : currentQuote.commercialId,
+        endDate: input.endDate || currentQuote.endDate,
+        fileUrl: input.fileUrl || currentQuote.fileUrl,
+        cartId: currentQuote.cartId // Toujours inclure cartId
+      };
+      
+      console.log('🔧 Update complet:', completeUpdate);
+      
+      // 3. Envoyer la mise à jour
+      const response = await apiClient.put<QuoteResponse>(`/devis/${id}`, completeUpdate);
+      
+      console.log('🔧 Réponse:', response.data);
       
       return response.data;
     } catch (error) {
-      const message = handleApiError(error as AxiosError<ApiError>);
-      throw new Error(`Erreur lors du téléchargement du fichier: ${message}`);
+      console.error('🔧 Erreur update complet:', error);
+      throw error;
     }
-  }
+  },
+
+  
+
+  
+
+
+ 
 }; 

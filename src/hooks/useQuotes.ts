@@ -26,8 +26,18 @@ export const useQuotes = (initialParams?: GetQuotesParams) => {
   // Utiliser useRef pour stocker les paramètres sans déclencher de re-rendu
   const paramsRef = useRef(initialParams);
 
+  // Mettre à jour paramsRef quand initialParams change
+  useEffect(() => {
+    paramsRef.current = initialParams;
+  }, [initialParams?.page, initialParams?.limit, initialParams?.status, initialParams?.commercialId]);
+
   // Charger la liste des devis
   const loadQuotes = useCallback(async (params?: GetQuotesParams) => {
+    // Mettre à jour la référence des paramètres pour les prochains appels
+    paramsRef.current = params || paramsRef.current;
+    
+    console.log('📋 loadQuotes appelé avec params:', params || paramsRef.current);
+
     setState(prev => ({ ...prev, loading: true, error: null }));
     
     try {
@@ -44,6 +54,10 @@ export const useQuotes = (initialParams?: GetQuotesParams) => {
       }
       
       const response = await quoteService.getQuotes(params || paramsRef.current);
+      console.log('📋 Devis chargés:', response.devis.length, 'devis');
+      console.log('📋 Response complète du service:', response);
+      console.log('📋 Premier devis avec commercial:', response.devis[0]);
+      
       setState({
         quotes: response.devis,
         meta: response.meta,
@@ -55,16 +69,9 @@ export const useQuotes = (initialParams?: GetQuotesParams) => {
       if (error.response?.status !== 401) {
         setState(prev => ({
           ...prev,
+          loading: false,
           error: error instanceof Error ? error.message : 'Erreur lors du chargement des devis',
-          loading: false,
         }));
-      } else {
-        setState({
-          quotes: [],
-          meta: null,
-          loading: false,
-          error: null,
-        });
       }
     }
   }, []);
@@ -104,14 +111,29 @@ export const useQuotes = (initialParams?: GetQuotesParams) => {
 
   // Mettre à jour un devis
   const updateQuote = useCallback(async (id: number, input: UpdateQuoteInput) => {
+    console.log('🔄 Hook updateQuote appelé avec:', { id, input });
+    
     setState(prev => ({ ...prev, loading: true, error: null }));
     
     try {
-      await quoteService.updateQuote(id, input);
-      // Recharger la liste après modification
+      // 1️⃣ Appel API pour mettre à jour
+      const response = await quoteService.updateQuote(id, input);
+      
+      console.log('✅ Devis mis à jour, rechargement de la liste...');
+
+      // 2️⃣ Recharger la liste complète pour avoir les données à jour
+      // C'est nécessaire car l'API ne retourne pas l'objet commercial complet
       await loadQuotes(paramsRef.current);
+      
+      console.log('✅ Liste rechargée avec succès');
+      
+      // 3️⃣ S'assurer que le loading est bien remis à false
+      setState(prev => ({ ...prev, loading: false }));
+
       return true;
     } catch (error) {
+      console.error('❌ Erreur dans updateQuote:', error);
+      
       setState(prev => ({
         ...prev,
         error: error instanceof Error ? error.message : 'Erreur lors de la modification du devis',
