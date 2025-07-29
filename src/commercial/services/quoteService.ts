@@ -61,60 +61,38 @@ export const commercialQuoteService = {
    * Upload du fichier PDF correspondant à un devis
    * POST /devis/file
    */
-  async uploadQuoteFile(id: number, base64File: string, endDate: string): Promise<QuoteResponse> {
+  async uploadQuoteFile(id: number, file: File, endDate: string): Promise<QuoteResponse> {
     try {
-      // Nettoyer le base64 - enlever le préfixe si présent
-      let cleanBase64 = base64File;
-      if (base64File.includes('data:')) {
-        cleanBase64 = base64File.split(',')[1];
+      // Vérifier la taille du fichier (10 MB max)
+      const fileSizeMB = file.size / 1024 / 1024;
+      if (fileSizeMB > 10) {
+        throw new Error(`Le fichier est trop volumineux (${fileSizeMB.toFixed(1)} MB). La taille maximale est de 10 MB.`);
       }
-      
-      // Calculer la taille réelle du fichier original (base64 est ~33% plus grand)
-      const base64SizeBytes = cleanBase64.length;
-      const originalSizeBytes = Math.round(base64SizeBytes * 0.75);
-      const originalSizeKB = Math.round(originalSizeBytes / 1024);
-      const originalSizeMB = originalSizeKB / 1024;
-      
+
+      // Créer FormData avec les données requises
+      const formData = new FormData();
+      formData.append('id', id.toString());
+      formData.append('endDate', endDate);
+      formData.append('file', file, file.name);
+
       if (import.meta.env.DEV) {
-        console.log('📤 Upload devis - Informations complètes:', {
+        console.log('📤 Upload devis avec FormData:', {
           id: id,
           endDate: endDate,
-          base64Length: cleanBase64.length,
-          base64First30Chars: cleanBase64.substring(0, 30) + '...',
-          originalSizeKB: originalSizeKB,
-          originalSizeMB: originalSizeMB.toFixed(2) + ' MB',
-          base64SizeKB: Math.round(base64SizeBytes / 1024),
-          base64SizeMB: (base64SizeBytes / 1024 / 1024).toFixed(2) + ' MB'
+          fileName: file.name,
+          fileSize: file.size,
+          fileSizeKB: Math.round(file.size / 1024),
+          fileSizeMB: fileSizeMB.toFixed(2) + ' MB',
+          fileType: file.type
         });
       }
 
-      // Vérifier que le fichier n'est pas trop gros (10 MB max pour le fichier original)
-      if (originalSizeMB > 10) {
-        throw new Error(`Le fichier est trop volumineux (${originalSizeMB.toFixed(1)} MB). La taille maximale est de 10 MB.`);
-      }
-
-      // Préparer le payload avec le bon format
-      const payload = { 
-        id: Number(id), // S'assurer que l'ID est un nombre
-        endDate: endDate,
-        file: cleanBase64 // Base64 sans le préfixe
-      };
-
-      if (import.meta.env.DEV) {
-        console.log('📤 Envoi du payload:', {
-          id: payload.id,
-          idType: typeof payload.id,
-          endDate: payload.endDate,
-          fileLength: payload.file.length,
-          payloadTotalSize: JSON.stringify(payload).length
-        });
-      }
-
-      // Envoyer la requête avec une configuration appropriée
-      const response = await apiClient.post<QuoteResponse>('/devis/file', payload, {
+      // Envoyer la requête avec FormData
+      const response = await apiClient.post<QuoteResponse>('/devis/file', formData, {
         timeout: 120000, // 2 minutes pour les gros fichiers
         headers: {
-          'Content-Type': 'application/json'
+          // Laisser axios gérer automatiquement le Content-Type pour FormData
+          // (il ajoutera multipart/form-data avec boundary)
         }
       });
       
@@ -154,9 +132,6 @@ export const commercialQuoteService = {
       // Erreur 400 - Bad Request
       if (axiosError.response?.status === 400) {
         const errorMessage = axiosError.response?.data?.message || 'Erreur de validation';
-        if (errorMessage.includes('fichier PDF est requis')) {
-          throw new Error('Le fichier PDF n\'a pas été correctement envoyé. Veuillez réessayer.');
-        }
         throw new Error(errorMessage);
       }
       
@@ -166,68 +141,6 @@ export const commercialQuoteService = {
       }
       
       // Autres erreurs
-      const message = handleApiError(axiosError);
-      throw new Error(message);
-    }
-  },
-
-  /**
-   * Upload du fichier PDF correspondant à un devis (version FormData)
-   * POST /devis/file
-   */
-  async uploadQuoteFileFormData(id: number, file: File, endDate: string): Promise<QuoteResponse> {
-    try {
-      const formData = new FormData();
-      formData.append('id', id.toString());
-      formData.append('endDate', endDate);
-      formData.append('file', file, file.name);
-
-      if (import.meta.env.DEV) {
-        console.log('📤 Upload FormData:', {
-          id: id,
-          endDate: endDate,
-          fileName: file.name,
-          fileSize: file.size,
-          fileSizeKB: Math.round(file.size / 1024),
-          fileSizeMB: (file.size / 1024 / 1024).toFixed(2) + ' MB',
-          fileType: file.type
-        });
-      }
-
-      const response = await apiClient.post<QuoteResponse>('/devis/file', formData, {
-        timeout: 120000, // 2 minutes
-        headers: {
-          // Laisser axios gérer le Content-Type pour FormData
-        }
-      });
-      
-      if (import.meta.env.DEV) {
-        console.log('✅ Upload FormData réussi:', response.data);
-      }
-      
-      return response.data;
-    } catch (error) {
-      const axiosError = error as AxiosError<ApiError>;
-      
-      if (import.meta.env.DEV) {
-        console.error('🚨 Upload FormData ERROR:', {
-          status: axiosError.response?.status,
-          statusText: axiosError.response?.statusText,
-          responseData: axiosError.response?.data,
-          errorMessage: axiosError.message
-        });
-      }
-      
-      // Propager l'erreur pour qu'elle soit gérée par le composant
-      if (axiosError.response?.status === 413) {
-        throw new Error('Le fichier est trop volumineux pour le serveur.');
-      }
-      
-      if (axiosError.response?.status === 400) {
-        const errorMessage = axiosError.response?.data?.message || 'Erreur de validation';
-        throw new Error(errorMessage);
-      }
-      
       const message = handleApiError(axiosError);
       throw new Error(message);
     }
